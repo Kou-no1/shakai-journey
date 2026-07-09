@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>シャカイ・クエスト UIモックアップ</title>
+<!--
+  このファイルはビジュアルの方向性を見せるためのモックアップです。
+  ・Google Fontsを読み込んでいますが、本番の静的サイトでは
+    リカ・クエストの方針（外部フォント不使用）に合わせて
+    セルフホストまたはシステムフォントに置き換える想定です。
+  ・偉人・名産品のイラストは簡易シルエットで、本番用の絵は別途必要です。
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* 時空の背景（宇宙寄りの濃紺） */
+    --bg-outer:#1B2131;
+    --bg-outer-deep:#12161F;
+    --bg-star:#E8E2CC;
+
+    /* 和紙の手帳ページ */
+    --paper:#EEE7D2;
+    --paper-deep:#E1D6B4;
+    --paper-line:#CBB98D;
+
+    /* 墨色のインク */
+    --ink:#2B271E;
+    --ink-soft:#6B6047;
+    --ink-faint:#A79A79;
+
+    /* 朱色（はんこスタンプ） */
+    --stamp:#C1432A;
+    --stamp-deep:#8F2E1C;
+
+    /* 8ラインの伝統色 */
+    --line-koku:#6E8F4E;
+    --line-shoku:#C99A2E;
+    --line-kogyo:#3D6478;
+    --line-joho:#7A5C99;
+    --line-kankyo:#3F6350;
+    --line-sei:#33475C;
+    --line-rek:#C1432A;
+    --line-kok:#2E7A8E;
+
+    --radius:16px;
+    --radius-sm:9px;
+  }
+
+  *{box-sizing:border-box;}
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 20% 15%, rgba(232,226,204,0.35) 0px, transparent 1px),
+      radial-gradient(circle at 70% 60%, rgba(232,226,204,0.25) 0px, transparent 1px),
+      radial-gradient(circle at 45% 80%, rgba(232,226,204,0.3) 0px, transparent 1px),
+      radial-gradient(circle at 85% 25%, rgba(232,226,204,0.22) 0px, transparent 1px),
+      radial-gradient(circle at 10% 70%, rgba(232,226,204,0.2) 0px, transparent 1px),
+      linear-gradient(160deg, var(--bg-outer), var(--bg-outer-deep));
+    background-size: 180px 180px, 220px 220px, 160px 160px, 200px 200px, 140px 140px, cover;
+    font-family:'Zen Maru Gothic', sans-serif;
+    color:var(--ink);
+    display:flex;
+    justify-content:center;
+    padding:28px 12px 60px;
+  }
+
+  .device{
+    width:100%;
+    max-width:430px;
+    background:var(--paper);
+    border-radius:22px;
+    box-shadow:0 30px 60px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06);
+    overflow:hidden;
+    position:relative;
+  }
+  .device::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image: repeating-linear-gradient(0deg, rgba(90,75,40,0.035) 0px, rgba(90,75,40,0.035) 1px, transparent 1px, transparent 3px);
+    pointer-events:none;
+  }
+
+  header.header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 18px 14px;
+    border-bottom:2px solid var(--paper-line);
+    position:relative;
+  }
+  .brand{display:flex; align-items:center; gap:8px;}
+  .brand-mark{width:30px; height:30px; color:var(--stamp);}
+  .brand h1{
+    font-family:'Yuji Syuku', serif;
+    font-size:22px;
+    margin:0;
+    letter-spacing:0.03em;
+    color:var(--ink);
+  }
+  .journey-progress{ text-align:right; }
+  .progress-label{ display:block; font-size:10px; color:var(--ink-soft); letter-spacing:0.08em;}
+  .progress-value{ font-family:'Yuji Syuku', serif; font-size:20px; color:var(--stamp);}
+  .progress-total{ font-size:12px; color:var(--ink-faint); font-family:'Zen Maru Gothic';}
+
+  nav.tabbar{
+    display:flex;
+    gap:4px;
+    padding:10px 14px 0;
+    position:relative;
+  }
+  .tab{
+    flex:1;
+    border:none;
+    background:transparent;
+    font-family:'Zen Maru Gothic'; font-weight:700; font-size:13.5px;
+    color:var(--ink-faint);
+    padding:9px 4px 12px;
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+    transition:color .15s;
+  }
+  .tab.active{ color:var(--ink); border-bottom-color:var(--stamp); }
+  .tab:focus-visible{ outline:2px solid var(--stamp); outline-offset:2px; }
+
+  main.screens{ padding:16px 16px 22px; min-height:520px; }
+  .screen{ display:none; }
+  .screen.active{ display:block; animation:fade .25s ease; }
+  @keyframes fade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
+
+  /* ---- 共通：小見出し・ピル ---- */
+  .section-eyebrow{
+    font-size:11px; letter-spacing:.12em; color:var(--ink-soft); font-weight:700; margin:0 0 8px;
+  }
+  .pillbar{ display:flex; gap:6px; overflow-x:auto; padding-bottom:10px; margin-bottom:12px;}
+  .pill{
+    flex:0 0 auto;
+    border:1.5px solid var(--paper-line);
+    background:var(--paper);
+    color:var(--ink-soft);
+    font-family:'Zen Maru Gothic'; font-weight:700; font-size:12.5px;
+    padding:7px 13px;
+    border-radius:999px;
+    cursor:pointer;
+    display:flex; align-items:center; gap:6px;
+  }
+  .pill .dot{width:8px; height:8px; border-radius:50%; background:var(--dot,#999);}
+  .pill.active{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+
+  /* ---- はんこスタンプ ---- */
+  .hanko{ width:34px; height:34px; color:var(--stamp); flex:0 0 auto; }
+  .hanko.small{ width:24px; height:24px; }
+  .hanko-ghost{ color:var(--ink-faint); opacity:.35; }
+
+  /* ---- マップ：路線図スタイル ---- */
+  .route-line{ position:relative; padding-left:26px; }
+  .route-line::before{
+    content:""; position:absolute; left:9px; top:14px; bottom:14px; width:4px;
+    background:var(--line-koku); border-radius:2px;
+  }
+  .station{
+    position:relative; display:flex; align-items:center; gap:12px;
+    padding:12px 0;
+  }
+  .station-node{
+    position:absolute; left:-26px; top:50%; transform:translate(-50%,-50%);
+    width:20px; height:20px; border-radius:50%;
+    background:var(--paper); border:4px solid var(--line-koku);
+  }
+  .station.locked .station-node{ border-color:var(--ink-faint); }
+  .station-card{
+    flex:1;
+    background:var(--paper-deep);
+    border:1.5px solid var(--paper-line);
+    border-radius:var(--radius-sm);
+    padding:10px 12px;
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+  }
+  .station.locked .station-card{ opacity:.5; }
+  .station-name{ font-weight:700; font-size:13.5px; }
+  .station-sub{ font-size:10.5px; color:var(--ink-soft); margin-top:2px;}
+  .branch-tag{
+    font-size:10px; background:var(--stamp); color:var(--paper); padding:2px 7px; border-radius:999px; margin-left:6px;
+  }
+
+  /* ---- 歴史すごろく（縦タイムライン） ---- */
+  .sugoroku-scroll{
+    max-height:340px; overflow-y:auto; padding-right:4px; margin:0 -4px 0 0;
+    border-radius:var(--radius-sm);
+  }
+  .sugoroku-line{ position:relative; padding-left:26px; }
+  .sugoroku-line::before{
+    content:""; position:absolute; left:9px; top:14px; bottom:14px; width:4px;
+    background:var(--line-rek); border-radius:2px;
+  }
+  .sugoroku-line .station-node{ border-color:var(--line-rek); }
+  .sugoroku-line .station-node.start{ border-color:var(--line-sei); }
+  .sugoroku-line .station.current .station-card{
+    border-color:var(--stamp); box-shadow:0 0 0 2px rgba(193,67,42,0.18);
+  }
+
+  /* ---- 世界路線 ---- */
+  .world-panel{
+    background:var(--paper-deep); border:1.5px solid var(--paper-line); border-radius:var(--radius);
+    padding:16px; text-align:center;
+  }
+  .globe{ width:100px; height:100px; margin:6px auto 10px; color:var(--line-kok); }
+  .world-stations{ display:flex; flex-direction:column; gap:8px; margin-top:12px; text-align:left; }
+
+  /* ---- 駅（ノード）画面 ---- */
+  .station-detail{
+    background:var(--paper-deep); border:1.5px solid var(--paper-line); border-radius:var(--radius);
+    padding:16px; margin-bottom:16px;
+  }
+  .station-detail-head{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;}
+  .station-detail-head h2{ font-family:'Yuji Syuku'; font-size:19px; margin:0 0 4px; }
+  .station-detail-head p{ font-size:11px; color:var(--ink-soft); margin:0; }
+
+  .challenge-card{
+    display:flex; align-items:center; gap:12px;
+    background:var(--paper); border:1.5px solid var(--paper-line); border-radius:var(--radius-sm);
+    padding:12px; margin-bottom:10px;
+  }
+  .challenge-card.locked{ opacity:.55; }
+  .challenge-icon{
+    width:42px; height:42px; border-radius:50%; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--ink); color:var(--paper);
+  }
+  .challenge-icon svg{ width:22px; height:22px; }
+  .challenge-body{ flex:1; }
+  .challenge-title{ font-weight:700; font-size:13.5px; display:flex; align-items:center; gap:6px;}
+  .challenge-desc{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
+  .challenge-cta{
+    border:none; background:var(--stamp); color:var(--paper);
+    font-family:'Zen Maru Gothic'; font-weight:700; font-size:11.5px;
+    padding:8px 12px; border-radius:999px; cursor:pointer; white-space:nowrap;
+  }
+  .challenge-cta:disabled{ background:var(--ink-faint); cursor:default; }
+  .challenge-cta:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+
+  .ijin-row{ display:flex; gap:6px; margin-top:8px; }
+  .ijin-chip{
+    width:30px; height:30px; border-radius:50%; background:var(--ink);
+    display:flex; align-items:center; justify-content:center; color:var(--paper); font-size:11px; font-weight:700;
+    border:2px solid var(--paper-line);
+  }
+
+  .kikitori-note{
+    display:flex; gap:8px; align-items:flex-start;
+    background:rgba(61,100,120,0.12); border:1px dashed var(--line-kogyo);
+    border-radius:var(--radius-sm); padding:10px 11px; font-size:11px; color:var(--ink-soft); margin-top:10px;
+  }
+  .kikitori-note svg{ width:16px; height:16px; flex:0 0 auto; color:var(--line-kogyo); margin-top:1px;}
+
+  /* ---- 資料館（御朱印帳） ---- */
+  .goshuin-summary{
+    display:flex; justify-content:space-between; align-items:center;
+    background:var(--ink); color:var(--paper);
+    border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:14px;
+  }
+  .goshuin-summary .num{ font-family:'Yuji Syuku'; font-size:22px; color:var(--stamp); }
+  .collection-grid{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:9px;
+  }
+  .collection-card{
+    aspect-ratio:1; background:var(--paper-deep); border:1.5px solid var(--paper-line);
+    border-radius:var(--radius-sm); display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:5px; padding:6px; position:relative;
+  }
+  .collection-card.uncollected{ filter:grayscale(1); opacity:.45; }
+  .collection-card .item-icon{ width:30px; height:30px; color:var(--ink); }
+  .collection-card .item-name{ font-size:9.5px; text-align:center; line-height:1.3; font-weight:700; }
+  .collection-card .rare-badge{
+    position:absolute; top:5px; right:5px; width:14px; height:14px; color:var(--stamp);
+  }
+
+  footer.note{
+    text-align:center; font-size:10.5px; color:var(--ink-faint); padding:14px 20px 4px;
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="ic-hanko" viewBox="0 0 100 100">
+    <defs>
+      <filter id="rough1"><feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="5"/></filter>
+    </defs>
+    <g filter="url(#rough1)" fill="none" stroke="currentColor" stroke-width="5">
+      <circle cx="50" cy="50" r="40"/>
+    </g>
+    <text x="50" y="45" text-anchor="middle" font-size="17" fill="currentColor" filter="url(#rough1)" font-family="Zen Maru Gothic" font-weight="700">認定</text>
+    <text x="50" y="66" text-anchor="middle" font-size="14" fill="currentColor" filter="url(#rough1)" font-family="Zen Maru Gothic">済</text>
+  </symbol>
+  <symbol id="ic-compass" viewBox="0 0 48 48">
+    <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" stroke-width="3"/>
+    <path d="M24 10 L28 22 L24 24 L20 22 Z" fill="currentColor"/>
+    <path d="M24 38 L20 26 L24 24 L28 26 Z" fill="currentColor" opacity="0.4"/>
+    <circle cx="24" cy="24" r="2.5" fill="currentColor"/>
+  </symbol>
+  <symbol id="ic-lock" viewBox="0 0 24 24">
+    <rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/>
+  </symbol>
+  <symbol id="ic-scroll" viewBox="0 0 24 24">
+    <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Z" fill="none" stroke="currentColor" stroke-width="1.8"/>
+    <path d="M9 9h7M9 13h7M9 17h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="ic-rice" viewBox="0 0 24 24">
+    <path d="M12 2c3 4 3 8 0 12-3-4-3-8 0-12Z" fill="currentColor"/>
+    <path d="M12 22v-8" stroke="currentColor" stroke-width="2"/>
+  </symbol>
+  <symbol id="ic-torii" viewBox="0 0 24 24">
+    <path d="M3 8h18M4 8v13M20 8v13M6 5h12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="ic-globe" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="3"/>
+    <ellipse cx="50" cy="50" rx="42" ry="16" fill="none" stroke="currentColor" stroke-width="2.4"/>
+    <ellipse cx="50" cy="50" rx="18" ry="42" fill="none" stroke="currentColor" stroke-width="2.4"/>
+    <line x1="8" y1="50" x2="92" y2="50" stroke="currentColor" stroke-width="2.4"/>
+  </symbol>
+  <symbol id="ic-ear" viewBox="0 0 24 24">
+    <path d="M12 3v6M8 21c0-6 2-9 4-9s4 3 4 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+</svg>
+
+<div class="device">
+  <header class="header">
+    <div class="brand">
+      <svg class="brand-mark"><use href="#ic-compass"/></svg>
+      <h1>シャカイ・クエスト</h1>
+    </div>
+    <div class="journey-progress">
+      <span class="progress-label">旅の記録</span>
+      <span class="progress-value">12<span class="progress-total">/36</span></span>
+    </div>
+  </header>
+
+  <nav class="tabbar">
+    <button class="tab active" data-screen="map">マップ</button>
+    <button class="tab" data-screen="station">駅</button>
+    <button class="tab" data-screen="museum">資料館</button>
+  </nav>
+
+  <main class="screens">
+
+    <!-- ============ 画面1：マップ ============ -->
+    <section class="screen active" id="screen-map">
+      <p class="section-eyebrow">ライン（路線）をえらぶ</p>
+      <div class="pillbar">
+        <button class="pill active" data-line="koku" style="--dot:var(--line-koku)"><span class="dot"></span>国土ライン</button>
+        <button class="pill" data-line="rek" style="--dot:var(--line-rek)"><span class="dot"></span>歴史すごろく</button>
+        <button class="pill" data-line="kok" style="--dot:var(--line-kok)"><span class="dot"></span>世界路線</button>
+      </div>
+
+      <!-- 国土ライン：路線図スタイル -->
+      <div class="line-view" id="line-koku">
+        <div class="route-line">
+          <div class="station">
+            <div class="station-node"></div>
+            <div class="station-card">
+              <div>
+                <div class="station-name">にっぽんスタート駅</div>
+                <div class="station-sub">世界の中の国土</div>
+              </div>
+              <svg class="hanko small"><use href="#ic-hanko"/></svg>
+            </div>
+          </div>
+          <div class="station">
+            <div class="station-node"></div>
+            <div class="station-card">
+              <div>
+                <div class="station-name">地形の秘境駅</div>
+                <div class="station-sub">国土の地形の特色</div>
+              </div>
+              <svg class="hanko small"><use href="#ic-hanko"/></svg>
+            </div>
+          </div>
+          <div class="station">
+            <div class="station-node"></div>
+            <div class="station-card">
+              <div>
+                <div class="station-name">輪中の里／高原の里<span class="branch-tag">分岐</span></div>
+                <div class="station-sub">低い土地／高い土地のくらし</div>
+              </div>
+            </div>
+          </div>
+          <div class="station locked">
+            <div class="station-node"></div>
+            <div class="station-card">
+              <div>
+                <div class="station-name">気候めぐり駅</div>
+                <div class="station-sub">国土の気候の特色</div>
+              </div>
+              <svg class="hanko small hanko-ghost"><use href="#ic-lock"/></svg>
+            </div>
+          </div>
+          <div class="station locked">
+            <div class="station-node"></div>
+            <div class="station-card">
+              <div>
+                <div class="station-name">南国の里／雪国の里<span class="branch-tag">分岐</span></div>
+                <div class="station-sub">あたたかい土地／寒い土地のくらし</div>
+              </div>
+              <svg class="hanko small hanko-ghost"><use href="#ic-lock"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 歴史すごろく：縦タイムラインスタイル -->
+      <div class="line-view" id="line-rek" hidden>
+        <div class="sugoroku-scroll">
+          <div class="sugoroku-line">
+            <div class="station">
+              <div class="station-node start"></div>
+              <div class="station-card">
+                <div><div class="station-name">げんだい日本駅</div><div class="station-sub">政治ライン・起点</div></div>
+                <svg class="hanko small"><use href="#ic-hanko"/></svg>
+              </div>
+            </div>
+            <div class="station">
+              <div class="station-node"></div>
+              <div class="station-card">
+                <div><div class="station-name">縄文・古墳の里</div><div class="station-sub">縄文のむらから古墳のくにへ</div></div>
+                <svg class="hanko small"><use href="#ic-hanko"/></svg>
+              </div>
+            </div>
+            <div class="station">
+              <div class="station-node"></div>
+              <div class="station-card">
+                <div><div class="station-name">飛鳥・奈良の都</div><div class="station-sub">天皇中心の国づくり</div></div>
+                <svg class="hanko small"><use href="#ic-hanko"/></svg>
+              </div>
+            </div>
+            <div class="station current">
+              <div class="station-node"></div>
+              <div class="station-card">
+                <div><div class="station-name">平安貴族の都</div><div class="station-sub">貴族のくらし</div></div>
+              </div>
+            </div>
+            <div class="station locked">
+              <div class="station-node"></div>
+              <div class="station-card"><div><div class="station-name">鎌倉武家の里</div><div class="station-sub">武士の世の中へ</div></div></div>
+            </div>
+            <div class="station locked">
+              <div class="station-node"></div>
+              <div class="station-card"><div><div class="station-name">室町文化の里</div><div class="station-sub">今に伝わる室町文化</div></div></div>
+            </div>
+            <div class="station locked">
+              <div class="station-node"></div>
+              <div class="station-card"><div><div class="station-name">戦国の城下町</div><div class="station-sub">戦国の世から天下統一へ</div></div></div>
+            </div>
+            <div class="station locked">
+              <div class="station-node"></div>
+              <div class="station-card"><div><div class="station-name">江戸城下町</div><div class="station-sub">江戸幕府と政治の安定</div></div></div>
+            </div>
+            <div class="station locked">
+              <div class="station-node"></div>
+              <div class="station-card"><div><div class="station-name">町人文化の里</div><div class="station-sub">町人の文化と新しい学問</div></div></div>
+            </div>
+            <div class="station locked">
+              <div class="station-node"></div>
+              <div class="station-card"><div><div class="station-name">明治維新の都</div><div class="station-sub">明治の国づくりを進めた人々</div></div></div>
+            </div>
+            <div class="station locked">
+              <div class="station-node"></div>
+              <div class="station-card"><div><div class="station-name">近代日本の港</div><div class="station-sub">世界に歩み出した日本</div></div></div>
+            </div>
+            <div class="station locked">
+              <div class="station-node"></div>
+              <div class="station-card"><div><div class="station-name">戦争と人々のくらしの里</div><div class="station-sub">長く続いた戦争と人々のくらし</div></div></div>
+            </div>
+            <div class="station locked">
+              <div class="station-node"></div>
+              <div class="station-card"><div><div class="station-name">戦後復興の都</div><div class="station-sub">新しい日本、平和な日本へ</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 世界路線：世界地図スタイル -->
+      <div class="line-view" id="line-kok" hidden>
+        <div class="world-panel">
+          <svg class="globe"><use href="#ic-globe"/></svg>
+          <div class="station-sub">歴史すごろくを上がった先に開くラスト章</div>
+          <div class="world-stations">
+            <div class="station">
+              <div class="station-card">
+                <div><div class="station-name">世界の隣人駅</div><div class="station-sub">日本とつながりの深い国々</div></div>
+              </div>
+            </div>
+            <div class="station locked">
+              <div class="station-card">
+                <div><div class="station-name">世界会議の間</div><div class="station-sub">世界の未来と日本の役割</div></div>
+                <svg class="hanko small hanko-ghost"><use href="#ic-lock"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 画面2：駅（ノード詳細） ============ -->
+    <section class="screen" id="screen-station">
+      <p class="section-eyebrow">駅の例①：ふつうの認定チャレンジ</p>
+      <div class="station-detail">
+        <div class="station-detail-head">
+          <div>
+            <h2>戦国の城下町</h2>
+            <p>対応：戦国の世から天下統一へ</p>
+          </div>
+          <svg class="hanko"><use href="#ic-hanko"/></svg>
+        </div>
+
+        <div class="challenge-card">
+          <div class="challenge-icon"><svg><use href="#ic-scroll"/></svg></div>
+          <div class="challenge-body">
+            <div class="challenge-title">探検</div>
+            <div class="challenge-desc">クリア済み・20問中20問</div>
+          </div>
+          <button class="challenge-cta" disabled>クリア済</button>
+        </div>
+
+        <div class="challenge-card">
+          <div class="challenge-icon" style="background:var(--stamp)"><svg><use href="#ic-torii"/></svg></div>
+          <div class="challenge-body">
+            <div class="challenge-title">認定チャレンジ</div>
+            <div class="challenge-desc">信長・秀吉・家康からの問答に挑戦</div>
+            <div class="ijin-row">
+              <div class="ijin-chip">信</div>
+              <div class="ijin-chip">秀</div>
+              <div class="ijin-chip">家</div>
+            </div>
+          </div>
+          <button class="challenge-cta">挑戦する</button>
+        </div>
+
+        <div class="challenge-card locked">
+          <div class="challenge-icon"><svg><use href="#ic-lock"/></svg></div>
+          <div class="challenge-body">
+            <div class="challenge-title">もっと知りたい！チャレンジ</div>
+            <div class="challenge-desc">認定チャレンジをクリアすると解放（中学生範囲）</div>
+          </div>
+          <button class="challenge-cta" disabled>ロック中</button>
+        </div>
+      </div>
+
+      <p class="section-eyebrow">駅の例②：聞き取りチャレンジ（戦争単元だけの特別演出）</p>
+      <div class="station-detail">
+        <div class="station-detail-head">
+          <div>
+            <h2>戦争と人々のくらしの里</h2>
+            <p>対応：長く続いた戦争と人々のくらし</p>
+          </div>
+        </div>
+
+        <div class="challenge-card">
+          <div class="challenge-icon"><svg><use href="#ic-scroll"/></svg></div>
+          <div class="challenge-body">
+            <div class="challenge-title">探検</div>
+            <div class="challenge-desc">クリア済み・20問中20問</div>
+          </div>
+          <button class="challenge-cta" disabled>クリア済</button>
+        </div>
+
+        <div class="challenge-card">
+          <div class="challenge-icon" style="background:var(--line-kogyo)"><svg><use href="#ic-scroll"/></svg></div>
+          <div class="challenge-body">
+            <div class="challenge-title">聞き取りチャレンジ</div>
+            <div class="challenge-desc">当時の証言・資料を読み解く</div>
+          </div>
+          <button class="challenge-cta" style="background:var(--line-kogyo)">聞き取る</button>
+        </div>
+
+        <div class="kikitori-note">
+          <svg><use href="#ic-scroll"/></svg>
+          <div>この駅だけ「認定キャラとの問答」を使わず、証言・資料を読み解く形式にしています。収蔵品も名産品ではなく配給切符などの史料アイテム扱いです。</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 画面3：資料館（御朱印帳） ============ -->
+    <section class="screen" id="screen-museum">
+      <div class="goshuin-summary">
+        <div>
+          <div style="font-size:11px; opacity:.75;">収蔵率</div>
+          <div class="num">34%</div>
+        </div>
+        <div style="font-size:11px; text-align:right; opacity:.85; max-width:150px;">名産品・偉人・アイテムを集めて御朱印帳を埋めていこう</div>
+      </div>
+
+      <div class="pillbar">
+        <button class="pill active" data-museum="meibutsu">名産品</button>
+        <button class="pill" data-museum="ijin">偉人</button>
+        <button class="pill" data-museum="item">アイテム</button>
+      </div>
+
+      <div class="museum-view" id="museum-meibutsu">
+        <div class="collection-grid">
+          <div class="collection-card"><svg class="item-icon"><use href="#ic-globe"/></svg><div class="item-name">地球儀バッジ</div></div>
+          <div class="collection-card"><svg class="item-icon"><use href="#ic-torii"/></svg><div class="item-name">日本アルプス<br>バッジ</div></div>
+          <div class="collection-card"><svg class="item-icon"><use href="#ic-ear"/></svg><div class="item-name">新米バッジ</div></div>
+          <div class="collection-card uncollected"><svg class="item-icon"><use href="#ic-lock"/></svg><div class="item-name">？？？</div></div>
+          <div class="collection-card"><svg class="item-icon"><use href="#ic-scroll"/></svg><div class="item-name">鉄砲レプリカ</div>
+            <svg class="rare-badge"><use href="#ic-hanko"/></svg>
+          </div>
+          <div class="collection-card uncollected"><svg class="item-icon"><use href="#ic-lock"/></svg><div class="item-name">？？？</div></div>
+          <div class="collection-card"><svg class="item-icon"><use href="#ic-ear"/></svg><div class="item-name">鮮魚セット</div></div>
+          <div class="collection-card uncollected"><svg class="item-icon"><use href="#ic-lock"/></svg><div class="item-name">？？？</div></div>
+          <div class="collection-card uncollected"><svg class="item-icon"><use href="#ic-lock"/></svg><div class="item-name">？？？</div></div>
+        </div>
+      </div>
+
+      <div class="museum-view" id="museum-ijin" hidden>
+        <div class="collection-grid">
+          <div class="collection-card"><div class="ijin-chip" style="width:34px;height:34px;">卑</div><div class="item-name">卑弥呼</div></div>
+          <div class="collection-card"><div class="ijin-chip" style="width:34px;height:34px;">聖</div><div class="item-name">聖徳太子</div></div>
+          <div class="collection-card uncollected"><svg class="item-icon"><use href="#ic-lock"/></svg><div class="item-name">？？？</div></div>
+          <div class="collection-card uncollected"><svg class="item-icon"><use href="#ic-lock"/></svg><div class="item-name">？？？</div></div>
+          <div class="collection-card uncollected"><svg class="item-icon"><use href="#ic-lock"/></svg><div class="item-name">？？？</div></div>
+          <div class="collection-card uncollected"><svg class="item-icon"><use href="#ic-lock"/></svg><div class="item-name">？？？</div></div>
+        </div>
+      </div>
+
+      <div class="museum-view" id="museum-item" hidden>
+        <div class="collection-grid">
+          <div class="collection-card"><svg class="item-icon"><use href="#ic-torii"/></svg><div class="item-name">先生の<br>虫めがね</div>
+            <svg class="rare-badge"><use href="#ic-hanko"/></svg>
+          </div>
+          <div class="collection-card uncollected"><svg class="item-icon"><use href="#ic-lock"/></svg><div class="item-name">？？？</div></div>
+          <div class="collection-card uncollected"><svg class="item-icon"><use href="#ic-lock"/></svg><div class="item-name">？？？</div></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="note">UIモックアップ：実装時はSVGを描き起こし、御朱印帳の質感を強めるとより良くなります</footer>
+</div>
+
+<script>
+  // 画面タブ切り替え
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('screen-'+tab.dataset.screen).classList.add('active');
+    });
+  });
+
+  // マップ：ライン切り替え
+  document.querySelectorAll('.pill[data-line]').forEach(pill=>{
+    pill.addEventListener('click', ()=>{
+      document.querySelectorAll('.pill[data-line]').forEach(p=>p.classList.remove('active'));
+      document.querySelectorAll('#screen-map .line-view').forEach(v=>v.hidden=true);
+      pill.classList.add('active');
+      document.getElementById('line-'+pill.dataset.line).hidden=false;
+    });
+  });
+
+  // 資料館：カテゴリ切り替え
+  document.querySelectorAll('.pill[data-museum]').forEach(pill=>{
+    pill.addEventListener('click', ()=>{
+      document.querySelectorAll('.pill[data-museum]').forEach(p=>p.classList.remove('active'));
+      document.querySelectorAll('#screen-museum .museum-view').forEach(v=>v.hidden=true);
+      pill.classList.add('active');
+      document.getElementById('museum-'+pill.dataset.museum).hidden=false;
+    });
+  });
+</script>
+</body>
+</html>
