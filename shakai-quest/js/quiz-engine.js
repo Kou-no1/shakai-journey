@@ -86,6 +86,9 @@
         grant("chara", branch.charaId, rewards);
       } else if (node.charaId) {
         grant("chara", node.charaId, rewards);
+      } else if (state.nodeId === "s6_rek12") {
+        grant("meibutsu", "m_tokyo_tower", rewards);
+        grant("chara", "c_kenpoukun", rewards);
       }
     }
     if (state.tier === "extra" && state.correct === state.questions.length) {
