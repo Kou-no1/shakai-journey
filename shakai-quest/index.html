@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>シャカイ・クエスト</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23eee7d2'/%3E%3Ccircle cx='32' cy='32' r='20' fill='none' stroke='%23c1432a' stroke-width='6'/%3E%3Cpath d='M22 33h20M32 20v24' stroke='%23c1432a' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 64 64" role="img">
+            <path d="M14 8h31c5 0 9 4 9 9v39H20c-6 0-10-4-10-10V12c0-2 2-4 4-4Z" fill="currentColor" opacity=".18"/>
+            <path d="M18 10h30c4 0 7 3 7 7v38H20c-5 0-9-4-9-9V17c0-4 3-7 7-7Z" fill="none" stroke="currentColor" stroke-width="4"/>
+            <path d="M23 20h20M23 30h17M23 40h22" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <p class="eyebrow">時空御朱印帳</p>
+          <h1>シャカイ・クエスト</h1>
+        </div>
+      </div>
+      <div class="player-card" aria-live="polite">
+        <span id="player-title">見習い探検者</span>
+        <strong>Lv.<span id="player-level">1</span></strong>
+        <small>EXP <span id="player-exp">0</span> / かけら <span id="kakera-count">0</span></small>
+      </div>
+    </header>
+
+    <nav class="tabbar" aria-label="メイン">
+      <button class="tab active" type="button" data-tab="map">路線図</button>
+      <button class="tab" type="button" data-tab="collection">資料館</button>
+      <button class="tab" type="button" data-tab="settings">設定</button>
+    </nav>
+
+    <main class="screen-frame">
+      <section id="screen-map" class="screen active" aria-labelledby="map-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">8ライン・36駅</p>
+            <h2 id="map-title">旅の地図</h2>
+          </div>
+          <button id="reset-view-btn" class="ghost-button" type="button">地図へ戻る</button>
+        </div>
+        <div id="map-root"></div>
+      </section>
+
+      <section id="screen-node" class="screen" aria-labelledby="node-title">
+        <div id="node-root"></div>
+      </section>
+
+      <section id="screen-quiz" class="screen" aria-labelledby="quiz-title">
+        <div id="quiz-root"></div>
+      </section>
+
+      <section id="screen-collection" class="screen" aria-labelledby="collection-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">御朱印と収蔵品</p>
+            <h2 id="collection-title">資料館</h2>
+          </div>
+        </div>
+        <div id="collection-root"></div>
+      </section>
+
+      <section id="screen-settings" class="screen" aria-labelledby="settings-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">保存と表示</p>
+            <h2 id="settings-title">設定</h2>
+          </div>
+        </div>
+        <div class="settings-panel">
+          <label class="switch-row">
+            <span>
+              <strong>ふりがな表示</strong>
+              <small>将来の問題文ルビ用設定です。</small>
+            </span>
+            <input id="setting-ruby" type="checkbox" checked>
+          </label>
+          <label class="switch-row">
+            <span>
+              <strong>効果音</strong>
+              <small>Web Audio APIだけを使います。</small>
+            </span>
+            <input id="setting-sound" type="checkbox" checked>
+          </label>
+          <button id="reset-save-btn" class="danger-button" type="button">セーブを初期化</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast-root" class="toast-root" aria-live="polite"></div>
+
+  <script src="data/lines-data.js"></script>
+  <script src="data/nodes-data.js"></script>
+  <script src="data/kakera-data.js"></script>
+  <script src="data/meibutsu-data.js"></script>
+  <script src="data/ijin-data.js"></script>
+  <script src="data/chara-data.js"></script>
+  <script src="data/item-data.js"></script>
+  <script src="data/questions/s5_koku01.js"></script>
+  <script src="data/questions/s5_koku03.js"></script>
+  <script src="data/questions/s6_rek06.js"></script>
+  <script src="data/questions/s6_rek11.js"></script>
+  <script src="js/svg-icons.js"></script>
+  <script src="js/save-manager.js"></script>
+  <script src="js/collection-renderer.js"></script>
+  <script src="js/map-renderer.js"></script>
+  <script src="js/quiz-engine.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
