@@ -30,6 +30,19 @@
     }
   }
 
+  function playStamp(root) {
+    var stamp = root.querySelector(".hanko-stamp-anim");
+    var ring = root.querySelector(".impact-ring");
+    if (!stamp || !ring) return;
+    stamp.classList.remove("play");
+    ring.classList.remove("play");
+    void stamp.getBoundingClientRect();
+    stamp.classList.add("play");
+    window.setTimeout(function () {
+      ring.classList.add("play");
+    }, 380);
+  }
+
   function getQuestions(nodeId, tier, branchId) {
     var bank = window.MapRenderer.bankFor(nodeId, branchId);
     return bank && Array.isArray(bank[tier]) ? bank[tier] : [];
@@ -115,7 +128,7 @@
       : '<div class="result-line">新しい節目報酬はありません。かけらとEXPは保存済みです。</div>';
     root.innerHTML = [
       '<section class="result-panel">',
-      '<div class="result-stamp ', isKikitori ? 'kikitori' : '', '">', esc(isKikitori ? '資料' : '朱印'), '</div>',
+      window.ShakaiIcons.resultStamp(isKikitori ? "資料" : "朱印", isKikitori),
       '<p class="eyebrow">', esc(node.stationName), '</p>',
       '<h2>', esc(title), '</h2>',
       '<p>正解 ', state.correct, ' / ', state.questions.length, ' 問</p>',
@@ -126,6 +139,7 @@
     ].join("");
     root.querySelector('[data-action="node"]').addEventListener("click", function () { window.ShakaiApp.openNode(state.nodeId); });
     root.querySelector('[data-action="collection"]').addEventListener("click", function () { window.ShakaiApp.showTab("collection"); });
+    playStamp(root);
   }
 
   function renderFeedback(root, ok, question) {

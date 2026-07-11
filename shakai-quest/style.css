@@ -29,6 +29,16 @@
   box-sizing: border-box;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
+
 html,
 body {
   min-height: 100%;
@@ -57,6 +67,13 @@ button {
   cursor: pointer;
 }
 
+.svg-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
 button:focus-visible,
 input:focus-visible {
   outline: 3px solid rgba(193, 67, 42, .45);
@@ -83,10 +100,22 @@ input:focus-visible {
   background-image: repeating-linear-gradient(0deg, rgba(90, 75, 40, .04) 0 1px, transparent 1px 4px);
 }
 
+.paper-grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: .42;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: 1;
+}
+
 .app-header,
 .tabbar,
 .screen-frame {
   position: relative;
+  z-index: 2;
 }
 
 .app-header {
@@ -342,6 +371,28 @@ input:focus-visible {
   text-align: left;
   background: var(--paper-soft);
   color: var(--ink);
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.station-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  opacity: .88;
+  pointer-events: none;
+}
+
+.station-button.locked .station-bg,
+.station-button.coming-soon .station-bg {
+  opacity: .42;
+}
+
+.station-button > :not(.station-bg) {
+  position: relative;
+  z-index: 1;
 }
 
 .station-button.playable {
@@ -480,6 +531,17 @@ input:focus-visible {
 .reward-icon svg {
   width: 44px;
   height: 44px;
+}
+
+.sq-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.sq-icon-somber {
+  filter: saturate(.78);
 }
 
 .branch-grid,
@@ -635,6 +697,81 @@ input:focus-visible {
 .result-stamp.kikitori {
   color: #6e6550;
   border-color: #8a7e62;
+}
+
+.stamp-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 124px;
+  height: 124px;
+  margin: 6px auto 12px;
+}
+
+.impact-ring {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  border: 3px solid var(--stamp);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stamp-stage.kikitori .impact-ring {
+  border-color: #8a7e62;
+}
+
+.hanko-stamp-anim {
+  width: 92px;
+  height: 92px;
+  opacity: 0;
+  transform-origin: center;
+}
+
+.hanko-stamp-anim.play {
+  animation: stampPress .7s cubic-bezier(.2, .9, .3, 1.2) both;
+}
+
+.impact-ring.play {
+  animation: ringPulse .55s ease-out both;
+}
+
+@keyframes stampPress {
+  0% {
+    opacity: 0;
+    transform: translateY(-46px) scale(1.3) rotate(-10deg);
+  }
+
+  38% {
+    opacity: 1;
+    transform: translateY(0) scale(1.18) rotate(-9deg);
+  }
+
+  55% {
+    transform: translateY(2px) scale(.9) rotate(-6deg);
+  }
+
+  72% {
+    transform: translateY(0) scale(1.06) rotate(-8deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(-7deg);
+  }
+}
+
+@keyframes ringPulse {
+  0% {
+    opacity: .7;
+    transform: scale(.3);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
 }
 
 .result-list {

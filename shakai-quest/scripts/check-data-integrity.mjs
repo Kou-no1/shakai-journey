@@ -28,6 +28,8 @@ function uniqPush(list, id) {
   "data/item-data.js"
 ].forEach(run);
 
+run("js/svg-icons.js");
+
 fs.readdirSync(path.join(appRoot, "data", "questions"))
   .filter((file) => file.endsWith(".js"))
   .sort()
@@ -38,13 +40,16 @@ const {
   QUESTION_BANK,
   MEIBUTSU_DATA,
   IJIN_DATA,
-  CHARA_DATA
+  CHARA_DATA,
+  ITEM_DATA,
+  ShakaiIcons
 } = context.window;
 
 const errors = [];
 const nodeIds = Object.keys(NODES_DATA || {});
 const questionIds = Object.keys(QUESTION_BANK || {});
 const charaIds = [];
+const iconKeys = [];
 
 if (nodeIds.length !== 36) errors.push(`expected 36 nodes, got ${nodeIds.length}`);
 if (questionIds.length !== 36) errors.push(`expected 36 question banks, got ${questionIds.length}`);
@@ -86,6 +91,16 @@ nodeIds.forEach((nodeId) => {
   });
   if (node.ijinId && !IJIN_DATA[node.ijinId]) errors.push(`missing ijin: ${node.ijinId}`);
   uniqPush(charaIds, node.charaId);
+  if (!ShakaiIcons.hasStationBackground(nodeId)) errors.push(`missing station background: ${nodeId}`);
+});
+
+Object.keys(MEIBUTSU_DATA || {}).forEach((id) => uniqPush(iconKeys, MEIBUTSU_DATA[id].svgKey || id));
+Object.keys(IJIN_DATA || {}).forEach((id) => uniqPush(iconKeys, IJIN_DATA[id].svgKey || id));
+Object.keys(CHARA_DATA || {}).forEach((id) => uniqPush(iconKeys, CHARA_DATA[id].svgKey || id));
+Object.keys(ITEM_DATA || {}).forEach((id) => uniqPush(iconKeys, ITEM_DATA[id].svgKey || id));
+
+iconKeys.forEach((key) => {
+  if (!ShakaiIcons.hasCustomIcon(key)) errors.push(`missing custom svg icon: ${key}`);
 });
 
 charaIds.sort();
@@ -112,5 +127,7 @@ console.log(JSON.stringify({
   meibutsu: Object.keys(MEIBUTSU_DATA || {}).length,
   ijin: Object.keys(IJIN_DATA || {}).length,
   charaRefs: charaIds.length,
-  charaData: dataCharaIds.length
+  charaData: dataCharaIds.length,
+  svgIcons: iconKeys.length,
+  stationBackgrounds: nodeIds.length
 }, null, 2));

@@ -52,6 +52,7 @@
     var hasBank = window.SaveManager.hasQuestionBank(node.nodeId);
     var playable = hasBank && progress.unlocked;
     var stateClass = !hasBank ? "coming-soon" : playable ? "playable" : "locked";
+    var background = window.ShakaiIcons.stationBackground(node.nodeId);
     var branchText = "";
     if (node.branch && progress.branchChosen) {
       var opt = getBranchOption(node, progress.branchChosen);
@@ -63,6 +64,7 @@
       '<button class="station-button ', stateClass, '" type="button" data-node-id="', esc(node.nodeId), '" ',
       playable ? '' : 'disabled ',
       'style="--line-color:', esc(line.color), '">',
+      background,
       '<span class="station-top"><span class="station-number">', node.order, '</span><span class="station-status">', stationStatus(node.nodeId, progress), '</span></span>',
       '<strong class="station-name">', esc(node.stationName), '</strong>',
       '<span class="station-sub">', esc(node.subunitName + branchText), '</span>',
