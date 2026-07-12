@@ -21,6 +21,7 @@
   --line-sei: #33475c;
   --line-rek: #c1432a;
   --line-kok: #2e7a8e;
+  --gold: #c9962e;
   --shadow: 0 22px 70px rgba(0, 0, 0, .38);
   --radius: 8px;
 }
@@ -845,6 +846,107 @@ input:focus-visible {
   line-height: 1.45;
 }
 
+.achievement-grid {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.achievement-card {
+  min-height: 146px;
+}
+
+.achievement-card .reward-icon {
+  color: var(--gold);
+}
+
+.achievement-card.locked {
+  filter: grayscale(1);
+  opacity: .58;
+}
+
+.achievement-lock-icon {
+  color: var(--ink-faint);
+}
+
+.achievement-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(20, 16, 10, .55);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .24s ease;
+}
+
+.achievement-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.achievement-modal {
+  width: min(360px, 100%);
+  padding: 24px 22px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 3px solid var(--gold);
+  border-radius: var(--radius);
+  text-align: center;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, .38);
+  opacity: 0;
+  transform: scale(.72);
+}
+
+.achievement-overlay.show .achievement-modal {
+  animation: achievementPop .5s cubic-bezier(.2, .9, .3, 1.3) forwards;
+}
+
+.achievement-modal-badge {
+  width: 68px;
+  height: 68px;
+  margin-bottom: 10px;
+}
+
+.achievement-label {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.achievement-modal h2 {
+  margin: 4px 0 6px;
+  color: var(--stamp-deep);
+  font-family: "Yu Mincho", "Hiragino Mincho ProN", serif;
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+.achievement-modal p:last-of-type {
+  margin: 0 0 16px;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
+@keyframes achievementPop {
+  0% {
+    opacity: 0;
+    transform: scale(.62);
+  }
+
+  60% {
+    opacity: 1;
+    transform: scale(1.07);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .common-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
@@ -879,6 +981,162 @@ input:focus-visible {
 .switch-row small {
   color: var(--ink-soft);
   margin-top: 2px;
+}
+
+.settings-panel > button {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.report-panel {
+  max-width: 780px;
+  margin: 0 auto;
+  background: rgba(248, 242, 223, .76);
+  border: 1px solid var(--paper-line);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.report-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  color: var(--paper);
+  background: var(--ink);
+  border-radius: var(--radius);
+}
+
+.report-top span,
+.report-footer span {
+  display: block;
+  font-size: 11px;
+  opacity: .72;
+}
+
+.report-top strong {
+  display: block;
+  color: var(--gold);
+  font-family: "Yu Mincho", "Hiragino Mincho ProN", serif;
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.overall-report {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(225, 214, 180, .62);
+  border: 1px solid var(--paper-line);
+  border-radius: var(--radius);
+}
+
+.overall-report > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.overall-report-track,
+.line-report-track {
+  overflow: hidden;
+  background: var(--paper-soft);
+  border-radius: 999px;
+}
+
+.overall-report-track {
+  height: 12px;
+}
+
+.overall-report-fill {
+  height: 100%;
+  background: var(--stamp);
+  border-radius: 999px;
+}
+
+.report-block {
+  margin-top: 16px;
+}
+
+.report-block h3 {
+  margin: 0 0 10px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.line-report-list {
+  display: grid;
+  gap: 8px;
+}
+
+.line-report-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 170px) 1fr 48px;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.line-report-name {
+  color: var(--ink-soft);
+  font-weight: 800;
+}
+
+.line-report-track {
+  height: 9px;
+}
+
+.line-report-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.report-weak {
+  padding: 12px;
+  background: #f2e4d8;
+  border: 1px dashed var(--stamp);
+  border-radius: var(--radius);
+}
+
+.report-note {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.report-weak-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.report-weak-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.report-weak-list strong {
+  color: var(--ink);
+}
+
+.report-footer {
+  margin-top: 14px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.report-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 16px;
 }
 
 .toast-root {
@@ -946,5 +1204,53 @@ input:focus-visible {
 
   .choice-grid.ox {
     grid-template-columns: 1fr;
+  }
+
+  .line-report-row {
+    grid-template-columns: 1fr 1fr 42px;
+  }
+
+  .report-actions {
+    flex-direction: column;
+  }
+}
+
+@media print {
+  body {
+    padding: 0;
+    background: #fff;
+  }
+
+  .app-shell {
+    width: 100%;
+    min-height: auto;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .app-shell::before,
+  .paper-grain,
+  .app-header,
+  .tabbar,
+  .no-print {
+    display: none !important;
+  }
+
+  .screen {
+    display: none !important;
+  }
+
+  #screen-report {
+    display: block !important;
+  }
+
+  .screen-frame {
+    padding: 0;
+  }
+
+  .report-panel {
+    max-width: none;
+    border: 0;
+    background: #fff;
   }
 }

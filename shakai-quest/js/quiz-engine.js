@@ -83,6 +83,7 @@
     var node = window.NODES_DATA[state.nodeId];
     var patch = {};
     patch[state.tier + "Clear"] = true;
+    if (state.tier === "extra" && state.correct === state.questions.length) patch.extraPerfectClear = true;
     window.SaveManager.setNodeProgress(state.nodeId, patch);
     var rewards = [];
     var branch = branchOption();
@@ -111,6 +112,7 @@
     }
 
     renderResult(root, rewards);
+    if (window.AchievementManager) window.AchievementManager.checkAchievements(true);
   }
 
   function tierLabel(tier, node) {
@@ -158,6 +160,7 @@
     var question = state.questions[state.index];
     var ok = question.type === "ox" ? selected === question.answer : Number(selected) === Number(question.answer);
     window.SaveManager.addKakera(1);
+    window.SaveManager.recordAnswer(state.nodeId, state.tier, ok);
     toast("+1 たびのかけら");
     if (ok) {
       state.correct += 1;
@@ -215,6 +218,7 @@
       toast("このチャレンジは近日公開です");
       return false;
     }
+    window.SaveManager.touchLastPlayed();
     state = { nodeId: nodeId, tier: tier, branchId: branchId || null, questions: questions.slice(), index: 0, correct: 0, answered: false };
     renderQuestion(root);
     return true;

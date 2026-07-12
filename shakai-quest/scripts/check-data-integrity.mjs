@@ -25,7 +25,8 @@ function uniqPush(list, id) {
   "data/meibutsu-data.js",
   "data/ijin-data.js",
   "data/chara-data.js",
-  "data/item-data.js"
+  "data/item-data.js",
+  "data/achievement-data.js"
 ].forEach(run);
 
 run("js/svg-icons.js");
@@ -42,6 +43,7 @@ const {
   IJIN_DATA,
   CHARA_DATA,
   ITEM_DATA,
+  ACHIEVEMENT_DATA,
   ShakaiIcons
 } = context.window;
 
@@ -50,9 +52,11 @@ const nodeIds = Object.keys(NODES_DATA || {});
 const questionIds = Object.keys(QUESTION_BANK || {});
 const charaIds = [];
 const iconKeys = [];
+const achievementIds = Object.keys(ACHIEVEMENT_DATA || {});
 
 if (nodeIds.length !== 36) errors.push(`expected 36 nodes, got ${nodeIds.length}`);
 if (questionIds.length !== 36) errors.push(`expected 36 question banks, got ${questionIds.length}`);
+if (achievementIds.length !== 16) errors.push(`expected 16 achievements, got ${achievementIds.length}`);
 
 nodeIds.forEach((nodeId) => {
   const node = NODES_DATA[nodeId];
@@ -116,6 +120,44 @@ if (charaIds.length !== dataCharaIds.length) {
 missingChara.forEach((id) => errors.push(`missing chara: ${id}`));
 extraChara.forEach((id) => errors.push(`unused chara data: ${id}`));
 
+function validLineId(lineId) {
+  return (context.window.LINES_DATA || []).some((line) => line.lineId === lineId);
+}
+
+achievementIds.forEach((id) => {
+  const achievement = ACHIEVEMENT_DATA[id];
+  const condition = achievement && achievement.condition;
+  const allowedConditionTypes = ["line_basic_clear", "lines_basic_clear", "all_basic_clear", "collection_complete", "extra_perfect_count", "kakera_count"];
+  if (!condition || !condition.type) {
+    errors.push(`missing achievement condition: ${id}`);
+    return;
+  }
+  if (!allowedConditionTypes.includes(condition.type)) {
+    errors.push(`invalid achievement condition type: ${id}/${condition.type}`);
+  }
+  if (condition.type === "line_basic_clear" && !validLineId(condition.lineId)) {
+    errors.push(`invalid achievement lineId: ${id}/${condition.lineId}`);
+  }
+  if (condition.type === "lines_basic_clear") {
+    if (!Array.isArray(condition.lineIds) || condition.lineIds.length === 0) {
+      errors.push(`missing achievement lineIds: ${id}`);
+    } else {
+      condition.lineIds.forEach((lineId) => {
+        if (!validLineId(lineId)) errors.push(`invalid achievement lineId: ${id}/${lineId}`);
+      });
+    }
+  }
+  if (condition.type === "collection_complete" && !["meibutsu", "ijin", "chara", "items", "item"].includes(condition.category)) {
+    errors.push(`invalid achievement collection category: ${id}/${condition.category}`);
+  }
+  if (condition.type === "extra_perfect_count" && (!Number.isFinite(Number(condition.count)) || Number(condition.count) <= 0)) {
+    errors.push(`invalid achievement perfect count: ${id}/${condition.count}`);
+  }
+  if (condition.type === "kakera_count" && (!Number.isFinite(Number(condition.count)) || Number(condition.count) <= 0)) {
+    errors.push(`invalid achievement kakera count: ${id}/${condition.count}`);
+  }
+});
+
 if (errors.length) {
   console.error(errors.join("\n"));
   process.exit(1);
@@ -128,6 +170,7 @@ console.log(JSON.stringify({
   ijin: Object.keys(IJIN_DATA || {}).length,
   charaRefs: charaIds.length,
   charaData: dataCharaIds.length,
+  achievements: achievementIds.length,
   svgIcons: iconKeys.length,
   stationBackgrounds: nodeIds.length
 }, null, 2));

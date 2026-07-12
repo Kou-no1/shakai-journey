@@ -105,8 +105,19 @@
             </span>
             <input id="setting-sound" type="checkbox" checked>
           </label>
+          <button id="open-report-btn" class="ghost-button" type="button">保護者レポートを開く</button>
           <button id="reset-save-btn" class="danger-button" type="button">セーブを初期化</button>
         </div>
+      </section>
+
+      <section id="screen-report" class="screen" aria-labelledby="report-title">
+        <div class="section-head no-print">
+          <div>
+            <p class="eyebrow">進み具合の記録</p>
+            <h2 id="report-title">保護者レポート</h2>
+          </div>
+        </div>
+        <div id="report-root"></div>
       </section>
     </main>
   </div>
@@ -120,6 +131,7 @@
   <script src="data/ijin-data.js"></script>
   <script src="data/chara-data.js"></script>
   <script src="data/item-data.js"></script>
+  <script src="data/achievement-data.js"></script>
   <script src="data/questions/s5_koku01.js"></script>
   <script src="data/questions/s5_koku02.js"></script>
   <script src="data/questions/s5_koku03.js"></script>
@@ -159,6 +171,8 @@
   <script src="js/svg-icons.js"></script>
   <script src="js/save-manager.js"></script>
   <script src="js/collection-renderer.js"></script>
+  <script src="js/achievement-manager.js"></script>
+  <script src="js/report-renderer.js"></script>
   <script src="js/map-renderer.js"></script>
   <script src="js/quiz-engine.js"></script>
   <script src="js/main.js"></script>

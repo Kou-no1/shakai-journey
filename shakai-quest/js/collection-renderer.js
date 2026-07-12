@@ -92,6 +92,56 @@
     return items.join("");
   }
 
+  function achievementColor(id, achievement) {
+    var condition = achievement.condition || {};
+    var lineId = condition.lineId || ((condition.lineIds || [])[0]);
+    var line = (window.LINES_DATA || []).find(function (item) { return item.lineId === lineId; });
+    if (id === "ach_all_complete") return "var(--stamp)";
+    if (id === "ach_kakera_500") return "var(--line-shoku)";
+    return line ? line.color : "var(--gold)";
+  }
+
+  function achievementIcon(id, achievement, got) {
+    if (!got) {
+      return [
+        '<svg class="sq-icon achievement-lock-icon" viewBox="0 0 80 80" role="img" aria-label="未解除" focusable="false">',
+        '<rect x="21" y="36" width="38" height="28" rx="4" fill="none" stroke="currentColor" stroke-width="5"/>',
+        '<path d="M28 36v-8c0-9 5-15 12-15s12 6 12 15v8" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>',
+        '</svg>'
+      ].join("");
+    }
+    var color = achievementColor(id, achievement);
+    return [
+      '<svg class="sq-icon achievement-medal-icon" viewBox="0 0 80 80" role="img" aria-label="', esc(achievement.title || achievement.desc), '" focusable="false">',
+      '<g style="color:', esc(color), '">',
+      '<path d="M28 53 20 74l14-7 6 10 6-10 14 7-8-21H28Z" fill="var(--stamp)" opacity=".88"/>',
+      '<circle cx="40" cy="34" r="24" fill="var(--gold)" stroke="currentColor" stroke-width="3"/>',
+      '<path d="M40 18l5 11 12 2-9 8 3 12-11-6-11 6 3-12-9-8 12-2 5-11Z" fill="#fff8e6" stroke="none"/>',
+      '</g></svg>'
+    ].join("");
+  }
+
+  function renderAchievementCard(id, achievement, owned) {
+    var got = owned.indexOf(id) !== -1;
+    var title = achievement.title || "かけら名人";
+    return [
+      '<article class="collection-card achievement-card ', got ? 'owned' : 'locked', '" data-id="', esc(id), '">',
+      '<div class="reward-icon" aria-hidden="true">', achievementIcon(id, achievement, got), '</div>',
+      '<h4>', esc(got ? title : "未解除"), '</h4>',
+      '<p>', esc(got ? achievement.desc : title), '</p>',
+      '</article>'
+    ].join("");
+  }
+
+  function renderAchievements(save) {
+    var achievements = window.ACHIEVEMENT_DATA || {};
+    var owned = save.owned.achievements || [];
+    var ids = Object.keys(achievements);
+    return '<section class="collection-section"><h3>実績</h3><div class="collection-grid achievement-grid">' +
+      ids.map(function (id) { return renderAchievementCard(id, achievements[id], owned); }).join("") +
+      '</div></section>';
+  }
+
   function renderCategory(title, type, save) {
     var ownedKey = type === "item" ? "items" : type;
     var ids = collectIds(type, save);
@@ -109,9 +159,11 @@
       '<div class="summary-tile"><span>名産品</span><strong>', save.owned.meibutsu.length, '</strong></div>',
       '<div class="summary-tile"><span>偉人カード</span><strong>', save.owned.ijin.length, '</strong></div>',
       '<div class="summary-tile"><span>認定キャラ</span><strong>', save.owned.chara.length, '</strong></div>',
+      '<div class="summary-tile"><span>実績</span><strong>', (save.owned.achievements || []).length, '</strong></div>',
       '</div>',
       '<section class="collection-section"><h3>ありふれた収蔵品</h3><div class="common-list">', renderCommonItems(save), '</div></section>',
       '<div class="collection-sections">',
+      renderAchievements(save),
       renderCategory("名産品", "meibutsu", save),
       renderCategory("偉人カード", "ijin", save),
       renderCategory("認定キャラ", "chara", save),
