@@ -58,7 +58,7 @@
     var progress = {};
     nodeIds().forEach(function (id) {
       var node = window.NODES_DATA[id];
-      var firstRoute = node.order === 1 && (node.lineId.indexOf("s5_") === 0 || node.lineId === "s6_sei");
+      var firstRoute = node.order === 1 && (node.lineId.indexOf("s5_") === 0 || node.lineId.indexOf("s6_") === 0);
       progress[id] = emptyProgress(firstRoute);
     });
     return {
@@ -81,12 +81,12 @@
       return prevClear || canDemoBypass(nodeId, next);
     }
     if (node.lineId === "s6_rek") {
-      if (node.order === 1) return !!(next.progress.s6_sei03 && next.progress.s6_sei03.basicClear) || canDemoBypass(nodeId, next);
+      if (node.order === 1) return true;
       var prevRek = findNodeByLineOrder("s6_rek", node.order - 1);
       return !!(prevRek && next.progress[prevRek] && next.progress[prevRek].basicClear) || canDemoBypass(nodeId, next);
     }
     if (node.lineId === "s6_kok") {
-      if (node.order === 1) return !!(next.progress.s6_rek12 && next.progress.s6_rek12.basicClear) || canDemoBypass(nodeId, next);
+      if (node.order === 1) return true;
       var prevKok = findNodeByLineOrder("s6_kok", node.order - 1);
       return !!(prevKok && next.progress[prevKok] && next.progress[prevKok].basicClear) || canDemoBypass(nodeId, next);
     }
