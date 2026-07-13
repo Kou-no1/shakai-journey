@@ -1,28 +1,29 @@
 :root {
-  --bg-outer: #1b2131;
-  --bg-outer-deep: #12161f;
-  --paper: #eee7d2;
-  --paper-deep: #e1d6b4;
-  --paper-soft: #f8f2df;
-  --paper-line: #cbb98d;
-  --ink: #2b271e;
-  --ink-soft: #6b6047;
-  --ink-faint: #9b8c69;
-  --stamp: #c1432a;
-  --stamp-deep: #8f2e1c;
-  --ok: #477a58;
-  --warn: #b0722b;
-  --locked: #8b836f;
-  --line-koku: #6e8f4e;
-  --line-shoku: #c99a2e;
-  --line-kogyo: #3d6478;
-  --line-joho: #7a5c99;
-  --line-kankyo: #3f6350;
-  --line-sei: #33475c;
-  --line-rek: #c1432a;
-  --line-kok: #2e7a8e;
-  --gold: #c9962e;
-  --shadow: 0 22px 70px rgba(0, 0, 0, .38);
+  --sky-a: #EAD9D6;
+  --sky-b: #D9CEE0;
+  --sky-c: #C9D8CE;
+  --paper: #F6EEE1;
+  --paper-deep: #EDE1CB;
+  --paper-soft: #FBF6EA;
+  --paper-line: #D9C9A8;
+  --ink: #5C4F42;
+  --ink-soft: #8B8070;
+  --ink-faint: #B6AB98;
+  --stamp: #B8544A;
+  --stamp-deep: #8F3F37;
+  --line-koku: #8FAE7A;
+  --line-shoku: #D9B565;
+  --line-kogyo: #7D9AAA;
+  --line-joho: #A08CBD;
+  --line-kankyo: #7CA085;
+  --line-sei: #7C8CA0;
+  --line-rek: #BD6355;
+  --line-kok: #6FA3AC;
+  --ok: #6F9B79;
+  --warn: #C39155;
+  --locked: #A79B87;
+  --gold: #C9A85E;
+  --shadow: 0 22px 70px rgba(92, 79, 66, .22);
   --radius: 8px;
 }
 
@@ -48,14 +49,9 @@ body {
 body {
   margin: 0;
   color: var(--ink);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background:
-    radial-gradient(circle at 18% 16%, rgba(238, 231, 210, .42) 0 1px, transparent 2px),
-    radial-gradient(circle at 74% 22%, rgba(238, 231, 210, .28) 0 1px, transparent 2px),
-    radial-gradient(circle at 28% 78%, rgba(238, 231, 210, .23) 0 1px, transparent 2px),
-    radial-gradient(circle at 88% 72%, rgba(238, 231, 210, .35) 0 1px, transparent 2px),
-    linear-gradient(160deg, var(--bg-outer), var(--bg-outer-deep));
-  background-size: 180px 180px, 220px 220px, 160px 160px, 240px 240px, cover;
+  font-family: "Zen Maru Gothic", "Hiragino Sans", "Yu Gothic", "Meiryo", system-ui, sans-serif;
+  background: linear-gradient(150deg, var(--sky-a), var(--sky-b) 55%, var(--sky-c));
+  background-attachment: fixed;
   padding: 24px 12px 48px;
 }
 
@@ -77,7 +73,7 @@ button {
 
 button:focus-visible,
 input:focus-visible {
-  outline: 3px solid rgba(193, 67, 42, .45);
+  outline: 3px solid rgba(184, 84, 74, .42);
   outline-offset: 2px;
 }
 
@@ -88,7 +84,7 @@ input:focus-visible {
   margin: 0 auto;
   overflow: hidden;
   background: var(--paper);
-  border: 1px solid rgba(255, 255, 255, .12);
+  border: 1px solid rgba(246, 238, 225, .74);
   border-radius: 8px;
   box-shadow: var(--shadow);
 }
@@ -98,7 +94,7 @@ input:focus-visible {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: repeating-linear-gradient(0deg, rgba(90, 75, 40, .04) 0 1px, transparent 1px 4px);
+  background-image: repeating-linear-gradient(0deg, rgba(92, 79, 66, .035) 0 1px, transparent 1px 4px);
 }
 
 .paper-grain {
@@ -150,7 +146,7 @@ input:focus-visible {
 }
 
 .brand h1 {
-  font-family: "Yu Mincho", "Hiragino Mincho ProN", serif;
+  font-family: "Klee One", "Hiragino Mincho ProN", "Yu Mincho", serif;
   font-size: clamp(24px, 3.5vw, 36px);
 }
 
@@ -214,10 +210,68 @@ input:focus-visible {
 
 .screen {
   display: none;
+  position: relative;
 }
 
 .screen.active {
   display: block;
+}
+
+.ambient-motes {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.mote {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 250, 236, .72);
+  box-shadow: 0 0 18px rgba(255, 250, 236, .78);
+  opacity: .42;
+  animation: moteDrift 8s ease-in-out infinite alternate;
+}
+
+.mote:nth-child(1) {
+  top: 10%;
+  left: 8%;
+}
+
+.mote:nth-child(2) {
+  top: 28%;
+  right: 14%;
+  animation-delay: -2s;
+}
+
+.mote:nth-child(3) {
+  right: 8%;
+  bottom: 18%;
+  animation-delay: -5s;
+}
+
+.mote:nth-child(4) {
+  bottom: 12%;
+  left: 20%;
+  animation-delay: -3s;
+}
+
+.screen > :not(.ambient-motes) {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes moteDrift {
+  from {
+    transform: translate3d(0, 0, 0) scale(.84);
+  }
+
+  to {
+    transform: translate3d(10px, -14px, 0) scale(1.1);
+  }
 }
 
 .section-head {
@@ -252,15 +306,15 @@ input:focus-visible {
 }
 
 .primary-button {
-  color: #fff9eb;
+  color: var(--paper);
   background: var(--stamp);
   border-color: var(--stamp-deep);
 }
 
 .danger-button {
-  color: #fff9eb;
-  background: #8f3528;
-  border-color: #672116;
+  color: var(--paper);
+  background: var(--stamp-deep);
+  border-color: #7A3730;
 }
 
 .map-stack {
@@ -423,7 +477,7 @@ input:focus-visible {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  color: #fff9eb;
+  color: var(--paper);
   background: var(--line-color);
   font-size: 12px;
   flex: 0 0 auto;
@@ -471,7 +525,7 @@ input:focus-visible {
 .mini-stamp.clear {
   color: var(--stamp);
   border-color: var(--stamp);
-  background: rgba(193, 67, 42, .08);
+  background: rgba(184, 84, 74, .09);
 }
 
 .node-layout {
@@ -590,13 +644,13 @@ input:focus-visible {
 }
 
 .tier-button.kikitori {
-  background: #ebe4d2;
-  border-color: #b9aa83;
+  background: #E7E0D0;
+  border-color: #C8BA9A;
 }
 
 .tier-button.clear {
   border-color: var(--stamp);
-  box-shadow: inset 0 0 0 2px rgba(193, 67, 42, .16);
+  box-shadow: inset 0 0 0 2px rgba(184, 84, 74, .15);
 }
 
 .back-row {
@@ -648,7 +702,7 @@ input:focus-visible {
 
 .choice-button.wrong {
   border-color: var(--stamp);
-  background: rgba(193, 67, 42, .12);
+  background: rgba(184, 84, 74, .11);
 }
 
 .feedback {
@@ -682,24 +736,6 @@ input:focus-visible {
   text-align: center;
 }
 
-.result-stamp {
-  width: 112px;
-  height: 112px;
-  margin: 6px auto 12px;
-  display: grid;
-  place-items: center;
-  color: var(--stamp);
-  border: 4px double var(--stamp);
-  border-radius: 50%;
-  transform: rotate(-8deg);
-  font-weight: 900;
-}
-
-.result-stamp.kikitori {
-  color: #6e6550;
-  border-color: #8a7e62;
-}
-
 .stamp-stage {
   position: relative;
   display: grid;
@@ -711,16 +747,19 @@ input:focus-visible {
 
 .impact-ring {
   position: absolute;
-  width: 70px;
-  height: 70px;
-  border: 3px solid var(--stamp);
+  width: 78px;
+  height: 78px;
+  border: 0;
+  background:
+    radial-gradient(circle, rgba(255, 250, 236, .62) 0 28%, rgba(184, 84, 74, .22) 48%, rgba(184, 84, 74, 0) 72%);
   border-radius: 50%;
   opacity: 0;
   pointer-events: none;
 }
 
 .stamp-stage.kikitori .impact-ring {
-  border-color: #8a7e62;
+  background:
+    radial-gradient(circle, rgba(255, 250, 236, .48) 0 28%, rgba(139, 128, 112, .22) 48%, rgba(139, 128, 112, 0) 72%);
 }
 
 .hanko-stamp-anim {
@@ -731,47 +770,41 @@ input:focus-visible {
 }
 
 .hanko-stamp-anim.play {
-  animation: stampPress .7s cubic-bezier(.2, .9, .3, 1.2) both;
+  animation: softIn .62s ease-out both;
 }
 
 .impact-ring.play {
-  animation: ringPulse .55s ease-out both;
+  animation: glowPulse 1.05s ease-out both;
 }
 
-@keyframes stampPress {
+@keyframes softIn {
   0% {
     opacity: 0;
-    transform: translateY(-46px) scale(1.3) rotate(-10deg);
+    transform: translateY(8px) scale(.88) rotate(-3deg);
   }
 
-  38% {
+  70% {
     opacity: 1;
-    transform: translateY(0) scale(1.18) rotate(-9deg);
-  }
-
-  55% {
-    transform: translateY(2px) scale(.9) rotate(-6deg);
-  }
-
-  72% {
-    transform: translateY(0) scale(1.06) rotate(-8deg);
+    transform: translateY(0) scale(1.04) rotate(-3deg);
   }
 
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1) rotate(-7deg);
+    transform: translateY(0) scale(1) rotate(-3deg);
   }
 }
 
-@keyframes ringPulse {
+@keyframes glowPulse {
   0% {
-    opacity: .7;
-    transform: scale(.3);
+    opacity: 0;
+    transform: scale(.72);
+    filter: blur(0);
   }
 
   100% {
     opacity: 0;
-    transform: scale(2.4);
+    transform: scale(1.9);
+    filter: blur(2px);
   }
 }
 
@@ -874,7 +907,7 @@ input:focus-visible {
   display: grid;
   place-items: center;
   padding: 18px;
-  background: rgba(20, 16, 10, .55);
+  background: rgba(92, 79, 66, .38);
   opacity: 0;
   pointer-events: none;
   transition: opacity .24s ease;
@@ -893,13 +926,13 @@ input:focus-visible {
   border: 3px solid var(--gold);
   border-radius: var(--radius);
   text-align: center;
-  box-shadow: 0 22px 60px rgba(0, 0, 0, .38);
+  box-shadow: 0 22px 60px rgba(92, 79, 66, .24);
   opacity: 0;
   transform: scale(.72);
 }
 
 .achievement-overlay.show .achievement-modal {
-  animation: achievementPop .5s cubic-bezier(.2, .9, .3, 1.3) forwards;
+  animation: achievementPop .52s ease-out forwards;
 }
 
 .achievement-modal-badge {
@@ -919,7 +952,7 @@ input:focus-visible {
 .achievement-modal h2 {
   margin: 4px 0 6px;
   color: var(--stamp-deep);
-  font-family: "Yu Mincho", "Hiragino Mincho ProN", serif;
+  font-family: "Klee One", "Hiragino Mincho ProN", "Yu Mincho", serif;
   font-size: 24px;
   line-height: 1.25;
 }
@@ -938,7 +971,7 @@ input:focus-visible {
 
   60% {
     opacity: 1;
-    transform: scale(1.07);
+    transform: scale(1.04);
   }
 
   100% {
@@ -1018,7 +1051,7 @@ input:focus-visible {
 .report-top strong {
   display: block;
   color: var(--gold);
-  font-family: "Yu Mincho", "Hiragino Mincho ProN", serif;
+  font-family: "Klee One", "Hiragino Mincho ProN", "Yu Mincho", serif;
   font-size: 22px;
   line-height: 1.25;
 }
@@ -1095,7 +1128,7 @@ input:focus-visible {
 
 .report-weak {
   padding: 12px;
-  background: #f2e4d8;
+  background: #F4E7DD;
   border: 1px dashed var(--stamp);
   border-radius: var(--radius);
 }
@@ -1151,11 +1184,11 @@ input:focus-visible {
 .toast {
   width: min(330px, calc(100vw - 32px));
   padding: 11px 13px;
-  color: #fff9eb;
-  background: rgba(43, 39, 30, .94);
+  color: var(--paper);
+  background: rgba(92, 79, 66, .94);
   border-left: 5px solid var(--stamp);
   border-radius: var(--radius);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, .28);
+  box-shadow: 0 12px 32px rgba(92, 79, 66, .26);
 }
 
 .is-hidden {

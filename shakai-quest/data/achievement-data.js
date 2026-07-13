@@ -42,7 +42,7 @@ window.ACHIEVEMENT_DATA = {
     condition: { type: "lines_basic_clear", lineIds: ["s6_sei", "s6_rek", "s6_kok"] }
   },
   ach_all_complete: {
-    title: "シャカイ・クエストマスター", desc: "36駅すべてを探検した", priority: 100,
+    title: "時空社会御朱印帳マスター", desc: "36駅すべてを探検した", priority: 100,
     condition: { type: "all_basic_clear" }
   },
   ach_meibutsu_complete: {

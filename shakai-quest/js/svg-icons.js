@@ -21,9 +21,10 @@
   function badge(color, inner, label) {
     return iconShell([
       '<g style="color:', color, '">',
-      '<circle cx="40" cy="40" r="36" fill="currentColor" opacity=".14"/>',
-      '<circle cx="40" cy="40" r="36" fill="none" stroke="currentColor" stroke-width="3"/>',
-      '<g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">',
+      '<circle cx="40" cy="40" r="35" fill="currentColor" opacity=".10"/>',
+      '<circle cx="40" cy="40" r="35" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="4 5" stroke-linecap="round"/>',
+      '<circle cx="40" cy="40" r="27" fill="var(--paper)" opacity=".34" stroke="none"/>',
+      '<g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">',
       inner,
       '</g></g>'
     ].join(""), label, "sq-icon sq-icon-badge");
@@ -220,15 +221,15 @@
   function somberIcon(key, label) {
     if (key === "ration_ticket") {
       return iconShell([
-        '<rect x="10" y="24" width="60" height="34" rx="2" fill="#d9cfb8" stroke="#8a8060" stroke-width="1.6" stroke-dasharray="3 3"/>',
-        '<path d="M18 35h42M18 44h29" stroke="#8a8060" stroke-width="1.6" stroke-linecap="round"/>',
-        '<path d="M51 24v34" stroke="#8a8060" stroke-width="1.2" stroke-dasharray="4 4"/>'
+        '<rect x="10" y="24" width="60" height="34" rx="3" fill="#D8D0BE" stroke="#8B8070" stroke-width="1.5" stroke-dasharray="3 4"/>',
+        '<path d="M18 35h42M18 44h29" stroke="#8B8070" stroke-width="1.5" stroke-linecap="round" opacity=".85"/>',
+        '<path d="M51 24v34" stroke="#8B8070" stroke-width="1.1" stroke-dasharray="4 4" opacity=".7"/>'
       ].join(""), label, "sq-icon sq-icon-somber");
     }
     return iconShell([
-      '<path d="M20 56V30c0-12 8-20 20-20s20 8 20 20v26H20Z" fill="#d9cfb8" stroke="#8a8060" stroke-width="2"/>',
-      '<path d="M28 38c7 5 17 5 24 0M34 27h1M46 27h1" stroke="#8a8060" stroke-width="3" stroke-linecap="round"/>',
-      '<path d="M23 56h34" stroke="#8a8060" stroke-width="2" stroke-linecap="round"/>'
+      '<path d="M20 56V31c0-12 8-20 20-20s20 8 20 20v25H20Z" fill="#D8D0BE" stroke="#8B8070" stroke-width="1.8"/>',
+      '<path d="M29 39c7 4 15 4 22 0M34 28h1M46 28h1" stroke="#8B8070" stroke-width="2.5" stroke-linecap="round" opacity=".86"/>',
+      '<path d="M24 56h32" stroke="#8B8070" stroke-width="1.8" stroke-linecap="round"/>'
     ].join(""), label, "sq-icon sq-icon-somber");
   }
 
@@ -259,11 +260,15 @@
     if (type === "uniform") prop = '<path d="M28 18h24M30 13h20M32 53h16"/>';
     if (type === "treaty") prop = '<path d="M52 18h14v26H52Z"/><path d="M56 27h6M56 35h6"/>';
     return iconShell([
-      '<g style="color:', LINE_COLOR.s6_rek, '" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">',
+      '<g style="color:', LINE_COLOR.s6_rek, '">',
+      '<rect x="11" y="11" width="58" height="58" rx="17" fill="currentColor" opacity=".10"/>',
+      '<circle cx="40" cy="37" r="22" fill="currentColor" opacity=".09"/>',
+      '<g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">',
       prop,
-      '<circle cx="40" cy="31" r="11"/>',
-      '<path d="M21 66c3-16 11-25 19-25s16 9 19 25H21Z"/>',
-      '</g>'
+      '<circle cx="40" cy="32" r="10" opacity=".88"/>',
+      '<path d="M23 65c4-15 10-23 17-23s13 8 17 23H23Z" opacity=".88"/>',
+      '<path d="M25 66h30" opacity=".42"/>',
+      '</g></g>'
     ].join(""), label, "sq-icon sq-icon-ijin");
   }
 
@@ -323,14 +328,15 @@
   function charaIcon(key, label) {
     var color = CHARA_COLOR[key] || LINE_COLOR.s5_koku;
     return iconShell([
-      '<g style="color:', color, '" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">',
-      '<circle cx="40" cy="53" r="21" fill="currentColor" opacity=".92" stroke="none"/>',
-      '<circle cx="40" cy="27" r="15" fill="#f0d9b5" stroke="none"/>',
-      '<circle cx="34" cy="27" r="2" fill="var(--ink)" stroke="none"/>',
-      '<circle cx="46" cy="27" r="2" fill="var(--ink)" stroke="none"/>',
-      '<path d="M34 34c4 3 8 3 12 0" stroke="var(--ink)" stroke-width="1.8"/>',
+      '<g style="color:', color, '">',
+      '<ellipse cx="40" cy="56" rx="23" ry="18" fill="currentColor" opacity=".88"/>',
+      '<circle cx="40" cy="31" r="18" fill="currentColor" opacity=".96"/>',
+      '<path d="M27 22c-6-4-8-10-4-14 7 2 11 7 12 13M53 22c6-4 8-10 4-14-7 2-11 7-12 13" fill="currentColor" opacity=".52"/>',
+      '<circle cx="40" cy="32" r="13" fill="var(--paper)" opacity=".22"/>',
+      '<path d="M32 31c2 2 4 2 6 0M42 31c2 2 4 2 6 0M34 39c4 3 8 3 12 0" fill="none" stroke="var(--ink)" stroke-width="1.7" stroke-linecap="round"/>',
+      '<g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">',
       charaProp(key),
-      '</g>'
+      '</g></g>'
     ].join(""), label, "sq-icon sq-icon-chara");
   }
 
@@ -392,24 +398,28 @@
     var color = node ? LINE_COLOR[node.lineId] || "var(--stamp)" : "var(--stamp)";
     var inner = scene(nodeId);
     if (!inner) return "";
+    var muted = nodeId === "s6_rek11";
+    if (muted) color = "var(--ink-faint)";
     return [
       '<svg class="station-bg" viewBox="0 0 200 100" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">',
-      '<g style="color:', color, '" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">',
-      '<path d="M0 82c45-18 82-8 120-14 34-6 56 1 80 10v22H0V82Z" fill="currentColor" stroke="none" opacity=".12"/>',
+      '<g style="color:', color, '" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="', muted ? '.42' : '.56', '">',
+      '<path d="M0 82c45-18 82-8 120-14 34-6 56 1 80 10v22H0V82Z" fill="currentColor" stroke="none" opacity="', muted ? '.10' : '.14', '"/>',
       inner,
       '</g></svg>'
     ].join("");
   }
 
   function resultStamp(label, subdued) {
-    var color = subdued ? "#6e6550" : "var(--stamp)";
+    var color = subdued ? "var(--ink-soft)" : "var(--stamp)";
     return [
       '<div class="stamp-stage ', subdued ? 'kikitori' : '', '" aria-hidden="true">',
       '<div class="impact-ring"></div>',
       '<svg class="hanko-stamp-anim" viewBox="0 0 100 100" style="color:', color, '" focusable="false">',
-      '<g filter="url(#rough)" fill="none" stroke="currentColor" stroke-width="5"><circle cx="50" cy="50" r="40"/></g>',
-      '<text x="50" y="45" text-anchor="middle" font-size="17" fill="currentColor" filter="url(#rough)" font-family="system-ui, sans-serif" font-weight="800">', esc(label || "朱印"), '</text>',
-      '<text x="50" y="66" text-anchor="middle" font-size="14" fill="currentColor" filter="url(#rough)" font-family="system-ui, sans-serif" font-weight="800">済</text>',
+      '<circle cx="50" cy="50" r="42" fill="currentColor" opacity=".10"/>',
+      '<circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" stroke-width="4" stroke-dasharray="5 6" stroke-linecap="round"/>',
+      '<circle cx="50" cy="50" r="26" fill="var(--paper)" opacity=".34"/>',
+      '<text x="50" y="47" text-anchor="middle" font-size="16" fill="currentColor" font-family="Klee One, system-ui, sans-serif" font-weight="800">', esc(label || "朱印"), '</text>',
+      '<text x="50" y="66" text-anchor="middle" font-size="13" fill="currentColor" font-family="Klee One, system-ui, sans-serif" font-weight="800">済</text>',
       '</svg>',
       '</div>'
     ].join("");

@@ -1,5 +1,5 @@
 // lines-data.js
-// シャカイ・クエストの8ライン定義。mapStyleがmap-renderer.jsの描画方式を決める。
+// 時空社会御朱印帳の8ライン定義。mapStyleがmap-renderer.jsの描画方式を決める。
 window.LINES_DATA = [
   { lineId: "s5_koku",   name: "国土ライン",     grade: 5, order: 1, mapStyle: "route",    color: "var(--line-koku)" },
   { lineId: "s5_shoku",  name: "食料生産ライン", grade: 5, order: 2, mapStyle: "route",    color: "var(--line-shoku)" },

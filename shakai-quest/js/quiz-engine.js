@@ -40,7 +40,7 @@
     stamp.classList.add("play");
     window.setTimeout(function () {
       ring.classList.add("play");
-    }, 380);
+    }, 90);
   }
 
   function getQuestions(nodeId, tier, branchId) {
