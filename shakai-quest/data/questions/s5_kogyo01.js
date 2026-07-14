@@ -1,5 +1,5 @@
 // data/questions/s5_kogyo01.js
-// mc4の正答位置は固定し、誤答選択肢は同じ小単元・時代・地域の候補で再構築済み。
+// mc4の正答位置は固定し、誤答選択肢は同じ小単元・時代・地域・文型の候補で再構築済み。
 window.QUESTION_BANK = window.QUESTION_BANK || {};
 window.QUESTION_BANK["s5_kogyo01"] = {
   "basic": [
@@ -21,7 +21,7 @@ window.QUESTION_BANK["s5_kogyo01"] = {
       "choices": [
         "運輸や販売のしくみ",
         "安全、品質、効率",
-        "原料や製品を運びやすいから",
+        "資料を整理するための記録",
         "重工業"
       ],
       "answer": 1,
@@ -167,8 +167,8 @@ window.QUESTION_BANK["s5_kogyo01"] = {
       "choices": [
         "北九州工業地域",
         "省エネルギーや廃棄物を減らす工夫",
-        "原料を加工して製品を作ること",
-        "工業製品がくらしを支えること"
+        "中国",
+        "貿易や輸送の安定"
       ],
       "answer": 1,
       "explain": "工業生産は便利さと環境の両方を考える必要がある。"
