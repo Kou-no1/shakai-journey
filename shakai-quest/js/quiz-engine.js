@@ -48,6 +48,17 @@
     return bank && Array.isArray(bank[tier]) ? bank[tier] : [];
   }
 
+  function shuffledCopy(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = a[i];
+      a[i] = a[j];
+      a[j] = tmp;
+    }
+    return a;
+  }
+
   function getCommonDrop(lineId, questionIndex) {
     var pool = (window.KAKERA_COMMON_POOL && window.KAKERA_COMMON_POOL[lineId]) || [];
     if (!pool.length || Math.random() >= .3) return null;
@@ -219,7 +230,7 @@
       return false;
     }
     window.SaveManager.touchLastPlayed();
-    state = { nodeId: nodeId, tier: tier, branchId: branchId || null, questions: questions.slice(), index: 0, correct: 0, answered: false };
+    state = { nodeId: nodeId, tier: tier, branchId: branchId || null, questions: shuffledCopy(questions), index: 0, correct: 0, answered: false };
     renderQuestion(root);
     return true;
   }
