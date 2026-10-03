@@ -16,8 +16,9 @@
   function toast(text) { if (window.ShakaiApp) window.ShakaiApp.toast(text); }
   function getQuestions(id, tier, branch, options) {
     if (options && options.middleCourse) {
-      var course = window.MiddleCourses.forNode(id);
-      return tier === "extra" && course && course.id === options.middleCourse ? window.MiddleCourses.bank(course.id, options.middleDifficulty).map(function (q, i) {
+      var course = window.MiddleCourses.courseForSession(id, options.middleCourse, options);
+      var bank = options.middlePractice ? (window.MiddleCourses.practiceCourse(options.middlePractice) === options.middleCourse && options.review ? window.MiddleCourses.practiceBank(options.middlePractice) : []) : window.MiddleCourses.bank(options.middleCourse, options.middleDifficulty);
+      return tier === "extra" && course ? bank.map(function (q, i) {
         return window.SocialQuestions.normalize(q, id, tier, branch, i);
       }) : [];
     }
@@ -25,7 +26,7 @@
   }
   function plan(source, nodeId, tier, branch, options) {
     var s = window.SaveManager.data();
-    if (options.review) source = source.filter(function (q) {
+    if (options.review && !options.middlePractice) source = source.filter(function (q) {
       var stats = s.questionStats[q.id];
       return stats && !stats.lastCorrect && (!options.mistakeReason || stats.lastMistake === options.mistakeReason);
     });
@@ -53,13 +54,14 @@
     options = options || {}; root = targetRoot;
     var s = window.SaveManager.data(), node = window.NODES_DATA[nodeId];
     if (window.SaveManager.status().protected) { toast("元のセーブを保護中です。設定で書き出し・読み込みを確認してください。"); return false; }
-    if (!node || !["basic", "advanced", "extra"].includes(tier) || !window.SaveManager.isNodeUnlocked(nodeId)) return false;
+    var portal = tier === "extra" && options.middlePortal === true && !!window.MiddleCourses.courseForSession(nodeId, options.middleCourse, options);
+    if (!node || !["basic", "advanced", "extra"].includes(tier) || (!portal && !window.SaveManager.isNodeUnlocked(nodeId))) return false;
     var branch = node.branch && node.branch.options.find(function (b) { return b.branchId === branchId; });
     if (node.branch && !branch) return false;
     var p = window.SaveManager.routeProgress(nodeId, branchId);
-    if (tier !== "basic" && !p.basicClear) return false;
+    if (tier !== "basic" && !p.basicClear && !portal) return false;
     if (s.activeSession && !s.activeSession.finished && !options.replace) {
-      if (!window.confirm("途中の冒険を終了して、新しく始めますか？")) { resume(targetRoot); return true; }
+      if (!window.confirm("途中の冒険を終了して、新しく始めますか？")) { window.ShakaiApp.resumeQuiz(); return true; }
     }
     var questions = plan(getQuestions(nodeId, tier, branchId, options), nodeId, tier, branchId, options);
     if (!questions.length) { toast("学び直す問題はまだありません。"); return false; }
@@ -128,8 +130,8 @@
     }
     if (!q.isRetry) {
       if (state.options.middleCourse) {
-        var mp = window.SaveManager.getMiddleProgress(state.options.middleCourse, state.options.middleDifficulty);
-        if (!state.options.review) { mp.stats.total++; if (ok) mp.stats.correct++; mp.stats.lastAttemptAt = qs.lastAttemptAt; }
+        var mp = state.options.middlePractice ? window.SaveManager.getPracticeProgress(state.options.middlePractice) : window.SaveManager.getMiddleProgress(state.options.middleCourse, state.options.middleDifficulty);
+        if (!state.options.review || state.options.middlePractice) { mp.stats.total++; if (ok) mp.stats.correct++; mp.stats.lastAttemptAt = qs.lastAttemptAt; }
         if (!mp.seenQuestionIds.includes(q.id)) mp.seenQuestionIds.push(q.id);
       } else {
         var st = p[state.tier + "Stats"]; st.total++; if (ok) st.correct++; st.lastAttemptAt = qs.lastAttemptAt;
@@ -146,7 +148,7 @@
       }
     }
     if (state.options.middleCourse && ok) {
-      var middle = window.SaveManager.getMiddleProgress(state.options.middleCourse, state.options.middleDifficulty);
+      var middle = state.options.middlePractice ? window.SaveManager.getPracticeProgress(state.options.middlePractice) : window.SaveManager.getMiddleProgress(state.options.middleCourse, state.options.middleDifficulty);
       if (!middle.masteredQuestionIds.includes(q.id)) middle.masteredQuestionIds.push(q.id);
     }
     if (ok) {
@@ -195,6 +197,7 @@
     persist(); render();
   }
   function label() {
+    if (state.options.middlePractice) return "別問題の復習 / " + window.MiddleCourses.mistakeLabels[state.options.middlePractice];
     if (state.options.middleCourse) return "中学発展・" + window.MiddleCourses.difficulties[state.options.middleDifficulty || "standard"] + " / " + window.MIDDLE_COURSES[state.options.middleCourse].title;
     var node = window.NODES_DATA[state.nodeId];
     if (node.challengeStyle === "kikitori") return state.tier === "basic" ? "資料の探究" : state.tier === "extra" ? "関連する資料" : "聞き取りチャレンジ";
@@ -206,7 +209,9 @@
     }).join("") + '</div>';
     if (!q.diagramData) return "";
     var d = q.diagramData, esc = window.ShakaiUtil.esc;
-    var caption = d.fictional ? (d.title ? d.title + " / " : "") + "学習用の架空データ" : (d.title || "資料") + " / 出典: " + (d.sourceName || d.source) + " / 基準年: " + d.referenceYear;
+    var caption = d.fictional ? (d.title ? d.title + " / " : "") + "学習用の架空データ" : (d.title || "資料") +
+      (d.learningSummary ? " / 学習用の要約（原文の引用ではありません）" : "") + " / 出典: " + (d.sourceName || d.source) +
+      (d.learningSummary ? " / 確認年: " : " / 基準年: ") + d.referenceYear;
     if (d.kind === "text") return '<figure class="question-data"><figcaption>' + esc(caption) + '</figcaption><p>' + esc(d.text) + '</p></figure>';
     return '<figure class="question-data"><figcaption>' + esc(caption) + '</figcaption><table><thead><tr>' + d.headers.map(function (h) { return '<th scope="col">' + esc(h) + '</th>'; }).join("") + '</tr></thead><tbody>' + d.rows.map(function (r) { return '<tr>' + r.map(function (v) { return '<td>' + esc(v) + '</td>'; }).join("") + '</tr>'; }).join("") + '</tbody></table></figure>';
   }
@@ -228,7 +233,7 @@
     root.querySelectorAll(".choice-button").forEach(function (b) { b.addEventListener("click", function () { answer(root, b.dataset.value); }); });
     var next = root.querySelector('[data-action="next"]'); if (next) next.addEventListener("click", advance);
     root.querySelectorAll("[data-item]").forEach(function (b) { b.addEventListener("click", function () { useItem(b.dataset.item); }); });
-    root.querySelector('[data-action="quit"]').addEventListener("click", function () { persist(); window.ShakaiApp.showTab("map"); });
+    root.querySelector('[data-action="quit"]').addEventListener("click", function () { persist(); window.ShakaiApp.showTab(state.options.middlePortal ? "middle" : "map"); });
     var control = root.querySelector(state.answered ? '[data-action="next"]' : '.choice-button:not(:disabled)');
     if (control) control.focus({ preventScroll: true });
   }
@@ -242,9 +247,10 @@
     root.innerHTML = '<section class="result-panel"><h2 id="quiz-title">' + (r.success ? (state.options.middleCourse ? (state.options.review ? '中学発展の復習完了' : '中学発展コース完了') : node.challengeStyle === "kikitori" ? '資料学習完了' : r.completed ? 'クエスト完了' : 'コース完了') : 'もう一度確かめよう') + '</h2>' +
       (r.completed ? window.ShakaiIcons.resultStamp(node.challengeStyle === "kikitori" ? "資料" : "探究", node.challengeStyle === "kikitori") : '') +
       '<p>初回の正解 ' + r.firstCorrect + ' / ' + r.total + ' 問</p>' + (state.tier === "basic" ? '<p>基本の習得 ' + r.mastery + ' / ' + r.bankSize + ' 問</p>' : '') +
-      (state.options.middleCourse ? '<p>' + esc(window.MIDDLE_COURSES[state.options.middleCourse].title) + ' / ' + esc(window.MiddleCourses.difficulties[state.options.middleDifficulty || "standard"]) + ' / ' + (state.options.review ? '復習記録を保存しました' : r.perfect ? '初回全問正解・ヒントなし' : '学習記録を保存しました') + '</p>' : '') +
+      (state.options.middleCourse ? '<p>' + esc(window.MIDDLE_COURSES[state.options.middleCourse].title) + ' / ' + esc(state.options.middlePractice ? window.MiddleCourses.mistakeLabels[state.options.middlePractice] : window.MiddleCourses.difficulties[state.options.middleDifficulty || "standard"]) + ' / ' + (state.options.review ? '復習記録を保存しました' : r.perfect ? '初回全問正解・ヒントなし' : '学習記録を保存しました') + '</p>' : '') +
       guideHTML + '<ul class="result-list">' + r.rewards.map(function (text) { return '<li>' + esc(text) + '</li>'; }).join("") + '</ul><div class="quiz-actions"><button class="primary-button" data-action="node">駅へ戻る</button><button class="ghost-button" data-action="collection">資料館へ</button></div></section>';
-    root.querySelector('[data-action="node"]').addEventListener("click", function () { window.SaveManager.data().activeSession = null; window.SaveManager.save(); window.ShakaiApp.openNode(state.nodeId); });
+    if (state.options.middlePortal) root.querySelector('[data-action="node"]').textContent = "中学の地図へ";
+    root.querySelector('[data-action="node"]').addEventListener("click", function () { window.SaveManager.data().activeSession = null; window.SaveManager.save(); if (state.options.middlePortal) window.ShakaiApp.openMiddle(state.options.middleCourse); else window.ShakaiApp.openNode(state.nodeId); });
     root.querySelector('[data-action="collection"]').addEventListener("click", function () { window.SaveManager.data().activeSession = null; window.SaveManager.save(); window.ShakaiApp.showTab("collection"); });
     if (node.challengeStyle !== "kikitori") root.querySelectorAll(".hanko-stamp-anim,.impact-ring").forEach(function (el) { el.classList.add("play"); });
   }

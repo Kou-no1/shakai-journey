@@ -204,7 +204,7 @@ async function run() {
     await page.evaluate(() => ShakaiApp.showTab('notebook'));
     assert.equal(await page.locator('.notebook-entry:has(.stage-label)').count(), 120);
     await page.evaluate(() => ShakaiApp.openReport());
-    assert.equal(await page.locator('.middle-report tbody tr').count(), 24);
+    assert.equal(await page.locator('.middle-report tbody tr').count(), 36);
     assert.match(await page.locator('.middle-report').innerText(), /14\/15/);
     await page.emulateMedia({ media: 'print' });
     assert.equal(await page.locator('.tabbar').isVisible(), false);
@@ -266,7 +266,7 @@ async function run() {
     assert.equal(await page.evaluate(() => SaveManager.data().player.exp), expBeforeReview);
     await page.evaluate(() => ShakaiApp.showTab('notebook')); await page.locator('[data-mistake-filter]').selectOption('');
     await page.evaluate(() => ShakaiApp.openReport());
-    assert.equal(await page.locator('.middle-report tbody tr').count(), 24);
+    assert.equal(await page.locator('.middle-report tbody tr').count(), 36);
     await page.emulateMedia({ media: 'print' });
     assert.equal(await page.locator('.tabbar').isVisible(), false);
     assert.equal(await page.locator('.report-actions').isVisible(), false);
@@ -375,7 +375,7 @@ async function run() {
     assert.equal(await protectedPage.evaluate(() => localStorage.getItem(SaveManager.key)), '{broken');
     await protectedPage.close();
     assert.deepEqual(errors, []); assert.deepEqual(external, []);
-    console.log('PASS browser: 3/4/5/6 maps, middle 120 standard + 96 multi-source questions, difficulty-specific progress, misconception review, resume, keyboard, HP/lives, retries, rare rewards, equipment, companions, 24-row report print, responsive SVG pixels, ruby, reduced motion, war restraint, file://, no external requests');
+    console.log('PASS browser: 3/4/5/6 maps, middle 120 standard + 96 multi-source questions, difficulty-specific progress, misconception review, resume, keyboard, HP/lives, retries, rare rewards, equipment, companions, 36-row middle report print, responsive SVG pixels, ruby, reduced motion, war restraint, file://, no external requests');
     console.log('Screenshots: ' + out);
   } finally { if (browser) await browser.close(); await new Promise(resolve => server.close(resolve)); }
 }

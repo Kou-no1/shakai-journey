@@ -22,7 +22,7 @@
     });
     return { schema: SCHEMA, player: { name: "旅人", level: 1, exp: 0, title: "見習い探検者", equipped: { sword: null, shield: null, armor: null, gauntlet: null } },
       owned: { meibutsu: [], ijin: [], chara: [], companions: [], items: [], achievements: [], equipment: [], monsters: [], clearedMonsters: [], kakeraCount: 0, commonItems: {}, consumables: { potion: 2, hint: 1 } },
-      progress: p, middleProgress: middle, questionStats: {}, questionBags: {}, encounterBags: {}, activeSession: null, activeCompanions: [], rewardedSessions: [],
+      progress: p, middleProgress: middle, practiceProgress: {}, writtenRecords: {}, questionStats: {}, questionBags: {}, encounterBags: {}, activeSession: null, activeCompanions: [], rewardedSessions: [],
       settings: { ruby: true, sound: false, motion: true, lastGrade: 5 }, meta: { lastPlayedAt: null } };
   }
   function number(value, fallback) { return Number.isFinite(Number(value)) && Number(value) >= 0 ? Math.floor(Number(value)) : fallback; }
@@ -70,6 +70,20 @@
         if (difficulty === "standard") base.middleProgress[id] = Object.assign(normalized, { levels: base.middleProgress[id].levels });
         else base.middleProgress[id].levels[difficulty] = normalized;
       });
+    });
+    Object.keys(window.MIDDLE_REVIEW_BANK).forEach(function (reason) {
+      var old = object(src.practiceProgress) && object(src.practiceProgress[reason]) ? src.practiceProgress[reason] : {};
+      var known = window.MiddleCourses.practiceBank(reason).map(function (q) { return q.id; });
+      base.practiceProgress[reason] = { stats: normalizeStats(old.stats),
+        seenQuestionIds: unique(old.seenQuestionIds).filter(function (id) { return known.includes(id); }),
+        masteredQuestionIds: unique(old.masteredQuestionIds).filter(function (id) { return known.includes(id); }) };
+    });
+    Object.keys(window.MIDDLE_WRITTEN).forEach(function (id) {
+      var value = object(src.writtenRecords) && src.writtenRecords[id], q = window.MIDDLE_WRITTEN[id];
+      if (!object(value) || typeof value.response !== "string" || !value.response.trim() || !date(value.assessedAt) ||
+        !Array.isArray(value.ratings) || value.ratings.length !== q.rubric.length || !value.ratings.every(function (r) { return [0, 1, 2].includes(r); })) return;
+      base.writtenRecords[id] = { response: value.response.slice(0, 2000), ratings: value.ratings.slice(), assessedAt: date(value.assessedAt),
+        attempts: Math.max(1, number(value.attempts, 1)), contentVersion: number(value.contentVersion, 1), sessionId: typeof value.sessionId === "string" ? value.sessionId : null };
     });
     ids().forEach(function (id) {
       var p = normalizeProgress(src.progress && src.progress[id]), node = window.NODES_DATA[id];
@@ -147,7 +161,7 @@
   function routeProgress(id, branch) { var p = getNodeProgress(id); return branch && p.branches[branch] ? p.branches[branch] : p; }
   function getMiddleProgress(id, difficulty) {
     var s = data(), p = s.middleProgress[id];
-    if (!p || (difficulty && !Object.prototype.hasOwnProperty.call(window.MiddleCourses.difficulties, difficulty))) return null;
+    if (!Object.prototype.hasOwnProperty.call(s.middleProgress, id) || !p || (difficulty && !Object.prototype.hasOwnProperty.call(window.MiddleCourses.difficulties, difficulty))) return null;
     return window.MiddleCourses.progressFor(id, difficulty, s);
   }
   function setNodeProgress(id, patch, branch) {
@@ -179,6 +193,12 @@
     key: SAVE_KEY, schema: SCHEMA, load: load, save: save, data: data, getDefault: getDefault, transaction: transaction,
     getNodeProgress: getNodeProgress, routeProgress: routeProgress, setNodeProgress: setNodeProgress, chooseBranch: chooseBranch, isNodeUnlocked: isNodeUnlocked,
     getMiddleProgress: getMiddleProgress,
+    getPracticeProgress: function (reason) {
+      if (!window.MiddleCourses.practiceCourse(reason)) return null;
+      var s = data();
+      if (!Object.prototype.hasOwnProperty.call(s.practiceProgress, reason)) s.practiceProgress[reason] = { stats: stats(), seenQuestionIds: [], masteredQuestionIds: [] };
+      return s.practiceProgress[reason];
+    },
     hasQuestionBank: function (id) { return !!window.QUESTION_BANK[id]; }, grantCollectible: grantCollectible, recordAnswer: recordAnswer,
     addKakera: function (n) { data().owned.kakeraCount += number(n, 0); return save(); },
     addExp: function (n) { data().player.exp += number(n, 0); return save(); },

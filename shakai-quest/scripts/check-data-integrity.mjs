@@ -42,6 +42,9 @@ run("data/questions/grades34.js");
 run("data/content-upgrades.js");
 run("data/middle-courses.js");
 run("data/middle-challenges.js");
+run("data/middle-expansion.js");
+run("data/middle-written.js");
+run("data/middle-review.js");
 run("data/rpg-data.js");
 
 const {
@@ -186,9 +189,12 @@ achievementIds.forEach((id) => {
 
 const middleCourses = Object.values(context.window.MIDDLE_COURSES);
 const middleIds = new Set();
-if (middleCourses.length !== 8) errors.push(`expected 8 middle courses, got ${middleCourses.length}`);
+function labelledMiddleSource(d) {
+  return d.fictional === true || (d.learningSummary === true && d.fictional === false && typeof d.source === "string" && d.source.startsWith("https://") && d.sourceName && Number.isInteger(d.referenceYear));
+}
+if (middleCourses.length !== 12) errors.push(`expected 12 middle courses, got ${middleCourses.length}`);
 middleCourses.forEach(course => {
-  if (!validLineId(course.id) || !course.title || !course.curriculumRefs) errors.push(`invalid middle course: ${course.id}`);
+  if (!NODES_DATA[course.entryNodeId] || NODES_DATA[course.entryNodeId].challengeStyle === "kikitori" || !course.title || !course.curriculumRefs) errors.push(`invalid middle course: ${course.id}`);
   if (course.questions.length !== 15) errors.push(`middle course must have 15 questions: ${course.id}`);
   course.questions.forEach(q => {
     if (middleIds.has(q.id)) errors.push(`duplicate middle question: ${q.id}`);
@@ -196,12 +202,12 @@ middleCourses.forEach(course => {
     if (q.tier !== "extra" || !["middle_geography", "middle_history", "middle_civics"].includes(q.targetStage)) errors.push(`middle stage mismatch: ${q.id}`);
     if (!q.stem || !q.explanation || !q.subId || !q.curriculumRef || !q.curriculumSource || q.contentVersion !== 1 || !Array.isArray(q.factSources) || !q.factSources.length) errors.push(`missing middle metadata: ${q.id}`);
     if (q.type !== "mc4" || q.choices.length !== 4 || new Set(q.choices).size !== 4 || !Number.isInteger(q.answer) || !q.choices[q.answer]) errors.push(`invalid middle question: ${q.id}`);
-    if (q.diagramData && (!q.diagramData.fictional || q.diagramData.rows.some(r => r.length !== q.diagramData.headers.length))) errors.push(`invalid middle data table: ${q.id}`);
+    if (q.diagramData && (!labelledMiddleSource(q.diagramData) || q.diagramData.rows.some(r => r.length !== q.diagramData.headers.length))) errors.push(`invalid middle data table: ${q.id}`);
   });
   if (course.questions.filter(q => q.diagramData).length < 2) errors.push(`too few middle tables: ${course.id}`);
   if (new Set(course.questions.map(q => q.skill)).size < 4) errors.push(`too few middle skills: ${course.id}`);
 });
-if (middleIds.size !== 120) errors.push(`expected 120 middle questions, got ${middleIds.size}`);
+if (middleIds.size !== 180) errors.push(`expected 180 standard middle questions, got ${middleIds.size}`);
 let challengeCount = 0;
 middleCourses.forEach(course => {
   for (const difficulty of ["applied", "hard"]) {
@@ -219,13 +225,29 @@ middleCourses.forEach(course => {
       if (!Array.isArray(q.evidence) || q.evidence.length < 2 || !q.evidence.every(e => typeof e === "string" && e.trim())) errors.push(`missing evidence: ${q.id}`);
       if (!Array.isArray(q.sourceMaterials) || q.sourceMaterials.length < 2) errors.push(`missing multiple sources: ${q.id}`);
       else q.sourceMaterials.forEach(d => {
-        if (!d.title || d.fictional !== true || !["table", "text"].includes(d.kind)) errors.push(`unlabelled challenge source: ${q.id}`);
+        if (!d.title || !labelledMiddleSource(d) || !["table", "text"].includes(d.kind)) errors.push(`unlabelled challenge source: ${q.id}`);
         if (d.kind === "text" ? !d.text : !Array.isArray(d.headers) || !Array.isArray(d.rows) || !d.rows.length || d.rows.some(r => r.length !== d.headers.length)) errors.push(`malformed challenge source: ${q.id}`);
       });
     }
   }
 });
-if (challengeCount !== 96) errors.push(`expected 96 multi-source challenges, got ${challengeCount}`);
+if (challengeCount !== 144) errors.push(`expected 144 multi-source challenges, got ${challengeCount}`);
+const written = Object.values(context.window.MIDDLE_WRITTEN), practice = Object.values(context.window.MIDDLE_REVIEW_BANK).flat();
+if (written.length !== 32) errors.push(`expected 32 written tasks, got ${written.length}`);
+written.forEach(q => {
+  if (middleIds.has(q.id)) errors.push(`duplicate written ID: ${q.id}`); middleIds.add(q.id);
+  if (q.type !== "written" || !context.window.MIDDLE_COURSES[q.courseId] || !q.modelAnswer || !q.stem || q.rubric.length !== 3 || q.assessment !== "self" || q.contentVersion !== 1) errors.push(`invalid written task: ${q.id}`);
+  if (!q.sourceMaterials || q.sourceMaterials.length < 2 || !q.sourceMaterials.every(d => labelledMiddleSource(d) && d.title)) errors.push(`invalid written materials: ${q.id}`);
+});
+if (practice.length !== 14) errors.push(`expected 14 transfer review questions, got ${practice.length}`);
+practice.forEach(q => {
+  if (middleIds.has(q.id)) errors.push(`duplicate practice ID: ${q.id}`); middleIds.add(q.id);
+  if (!context.window.MiddleCourses.practiceCourse(q.practiceReason) || q.courseId !== context.window.MiddleCourses.practiceCourse(q.practiceReason) || q.choices.length !== 4 || new Set(q.choices).size !== 4 || q.choiceReasons[q.answer] !== null || q.sourceMaterials.length < 2 || q.evidence.length < 2) errors.push(`invalid transfer question: ${q.id}`);
+});
+Object.keys(context.window.MIDDLE_COURSES).forEach(id => {
+  const count = written.filter(q => q.courseId === id).length;
+  if (count !== (validLineId(id) ? 2 : 4)) errors.push(`written coverage mismatch: ${id}`);
+});
 
 if (errors.length) {
   console.error(errors.join("\n"));
@@ -245,5 +267,6 @@ console.log(JSON.stringify({
   fictionalEncounters: Object.keys(context.window.MONSTER_DATA).length,
   companions: Object.keys(context.window.COMPANION_DATA).length,
   equipment: Object.keys(context.window.EQUIPMENT_DATA).length,
-  middleCourses: middleCourses.length, middleQuestions: middleIds.size, multiSourceChallenges: challengeCount
+  middleCourses: middleCourses.length, middleQuestions: middleIds.size - written.length - practice.length, multiSourceChallenges: challengeCount,
+  writtenTasks: written.length, transferReviewQuestions: practice.length
 }, null, 2));

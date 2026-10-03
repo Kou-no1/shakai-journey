@@ -84,6 +84,10 @@
         grouped[q.skill].correct += stats.correct || 0; grouped[q.skill].total += stats.attempts || 0;
       });
     });
+    Object.values(window.MIDDLE_REVIEW_BANK).flat().forEach(function (q) {
+      var stats = save.questionStats[q.id]; if (!stats) return;
+      grouped[q.skill].correct += stats.correct || 0; grouped[q.skill].total += stats.attempts || 0;
+    });
     return '<div class="skill-summary">' + Object.keys(grouped).map(function (key) {
       var s = grouped[key];
       return '<span>' + esc(window.SocialQuestions.skills[key]) + '<strong>' + (s.total ? Math.round(100 * s.correct / s.total) + '% / ' + s.total + '回答' : '記録なし') + '</strong></span>';
@@ -118,6 +122,8 @@
       '<section class="report-block"><h3>ライン別の進み具合</h3><div class="line-report-list">', lineRows(save), '</div></section>',
       '<section class="report-block"><h3>技能別の記録（学び直しを含む）</h3>', skillRows(save), '</section>',
       '<section class="report-block"><h3>中学発展の記録</h3>', middleRows(save), '</section>',
+      '<section class="report-block"><h3>記述・資料探究（自己評価）</h3>', writtenRows(save), '</section>',
+      '<section class="report-block"><h3>別問題の復習（初回回答）</h3>', practiceRows(save), '</section>',
       '<section class="report-block"><h3>次に確かめたい考え方</h3>', Object.keys(window.MiddleCourses.reviewReasons(save)).map(function (key) {
         return '<p class="report-note">' + esc(window.MiddleCourses.mistakeLabels[key]) + ' / ' + window.MiddleCourses.reviewReasons(save)[key] + '問</p>';
       }).join("") || '<p class="report-note">今のところ、資料照合の復習候補はありません。</p>', '</section>',
@@ -132,6 +138,20 @@
     ].join("");
     root.querySelector('[data-action="print"]').addEventListener("click", function () { window.print(); });
     root.querySelector('[data-action="back"]').addEventListener("click", onBack);
+  }
+
+  function writtenRows(save) {
+    return '<table class="written-report"><thead><tr><th scope="col">コース</th><th scope="col">記録済み</th><th scope="col">直近の自己評価</th></tr></thead><tbody>' + Object.keys(window.MIDDLE_COURSES).map(function (id) {
+      var questions = window.MiddleCourses.writtenFor(id), records = questions.map(function (q) { var r = save.writtenRecords[q.id]; return r && r.contentVersion === q.contentVersion ? r : null; }).filter(Boolean);
+      var latest = records.slice().sort(function (a, b) { return Date.parse(b.assessedAt) - Date.parse(a.assessedAt); })[0];
+      return '<tr><th scope="row">' + esc(window.MIDDLE_COURSES[id].title) + '</th><td>' + window.MiddleRenderer.writtenCount(id, save) + '/' + questions.length + '</td><td>' + (latest ? latest.ratings.reduce(function (n, r) { return n + r; }, 0) + '/6' : '未記録') + '</td></tr>';
+    }).join("") + '</tbody></table>';
+  }
+  function practiceRows(save) {
+    return '<table class="practice-report"><thead><tr><th scope="col">着目点</th><th scope="col">習得</th><th scope="col">正答率</th></tr></thead><tbody>' + Object.keys(window.MIDDLE_REVIEW_BANK).map(function (reason) {
+      var p = save.practiceProgress[reason], percent = p && rate(p.stats);
+      return '<tr><th scope="row">' + esc(window.MiddleCourses.mistakeLabels[reason]) + '</th><td>' + (p ? p.masteredQuestionIds.length : 0) + '/2</td><td>' + (percent === null || percent === undefined ? '未記録' : percent + '% / ' + p.stats.total + '回答') + '</td></tr>';
+    }).join("") + '</tbody></table>';
   }
 
   window.ReportRenderer = { render: render, weakNodes: weakNodes };

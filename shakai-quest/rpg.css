@@ -131,4 +131,45 @@ rt { font-size: 10px; font-weight: 400; }
   .station-list.route .station-group { grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); }
   .battle-stage { min-height: 260px; }
 }
-@media print { .grade-tabs, .resume-button { display: none !important; } }
+.middle-field { border-top: 2px solid var(--paper-line); margin-top: 24px; padding: 8px 0 20px; }
+.middle-field h3 { font-size: 20px; }
+.middle-course-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.middle-course-card { min-width: 0; border: 1px solid var(--paper-line); border-radius: 8px; background: #fff; padding: 16px; display: flex; flex-direction: column; }
+.middle-course-card > svg { position: static; inset: auto; height: 90px; width: 100%; background: #eff5f6; flex-shrink: 0; }
+.middle-course-card h4 { font-size: 16px; line-height: 1.6; margin: 12px 0; min-height: 52px; }
+.middle-course-card > button { width: 100%; margin-top: auto; }
+.middle-course-progress { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-size: 12px; padding: 12px 0; }
+.middle-course-progress span { display: grid; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
+.middle-course-progress strong { font-size: 16px; color: #255970; }
+.middle-levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.middle-levels button { min-width: 0; }
+.middle-practice, .middle-written-list { margin-top: 24px; padding: 20px 0; border-top: 1px solid var(--paper-line); }
+.middle-written-list article, .written-entry { padding: 16px 0; border-bottom: 1px solid var(--paper-line); line-height: 1.8; }
+.middle-written-list h4 { margin: 0 0 10px; font-size: 16px; }
+.middle-written-list article > span { font-size: 13px; margin-right: 16px; }
+.written-work .question-card { max-width: 980px; margin: 0 auto; }
+.written-label { display: block; font-weight: 700; margin: 16px 0 8px; }
+#written-response { width: 100%; min-height: 180px; resize: vertical; color: var(--ink); border: 1px solid #7e8b9d; border-radius: 6px; background: #fff; padding: 12px; font: inherit; line-height: 1.8; }
+.written-response { white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px; background: #f0f6fa; border-left: 3px solid #709ba9; line-height: 1.8; }
+.written-criterion { min-width: 0; padding: 12px; margin: 16px 0; border: 1px solid var(--paper-line); border-radius: 6px; }
+.written-criterion legend { font-weight: 700; font-size: 15px; line-height: 1.8; }
+.written-criterion label { min-height: 44px; display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.written-criterion input { width: 20px; height: 20px; flex: 0 0 20px; }
+.model-answer summary, .written-entry summary { min-height: 44px; cursor: pointer; font-weight: 700; }
+.model-answer p { line-height: 1.9; }
+.written-saved { color: #216842; font-weight: 700; }
+.written-report, .practice-report { width: 100%; border-collapse: collapse; font-size: 13px; }
+.written-report th, .written-report td, .practice-report th, .practice-report td { text-align: left; padding: 10px 6px; border-bottom: 1px solid var(--paper-line); }
+.written-report th:first-child { width: 52%; }
+.tabbar { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.tabbar .tab { min-width: 0; }
+@media (max-width: 900px) { .middle-course-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 540px) {
+  .tabbar { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
+  .middle-course-grid { grid-template-columns: minmax(0, 1fr); }
+  .middle-levels { gap: 6px; }
+  .middle-levels .tier-button { padding: 12px 8px; font-size: 13px; }
+  .written-work .quiz-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .written-work .quiz-actions button { width: 100%; }
+}
+@media print { .grade-tabs, .resume-button { display: none !important; } .written-report tr, .practice-report tr, .middle-report tr { break-inside: avoid; } }

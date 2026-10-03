@@ -120,7 +120,7 @@
     showScreen("quiz");
     setActiveTab("");
     var ok = window.QuizEngine.start(roots.quiz, nodeId, tier, branchId, options);
-    if (!ok) openNode(nodeId);
+    if (!ok) { if (options && options.middlePortal) openMiddle(options.middleCourse); else openNode(nodeId); }
   }
 
   function showTab(tabName) {
@@ -129,6 +129,7 @@
       renderMap();
       showScreen("map");
     }
+    if (tabName === "middle") openMiddle();
     if (tabName === "collection") {
       window.CollectionRenderer.render(roots.collection);
       showScreen("collection");
@@ -145,8 +146,19 @@
 
   function resumeQuiz() {
     showScreen("quiz");
-    if (window.QuizEngine.resume(roots.quiz)) { setActiveTab(""); }
+    var session = window.SaveManager.data().activeSession;
+    var engine = session && session.kind === "written" ? window.WrittenEngine : window.QuizEngine;
+    if (engine.resume(roots.quiz)) { setActiveTab(""); }
     else showTab("map");
+  }
+
+  function openMiddle(courseId) {
+    setActiveTab("middle"); showScreen("middle");
+    window.MiddleRenderer.render(roots.middle, courseId);
+  }
+  function startWritten(id) {
+    showScreen("quiz"); setActiveTab("");
+    if (!window.WrittenEngine.start(roots.quiz, id)) openMiddle(window.MIDDLE_WRITTEN[id] && window.MIDDLE_WRITTEN[id].courseId);
   }
 
   function openReport() {
@@ -214,7 +226,7 @@
   }
 
   function init() {
-    roots = { map: $("#map-root"), node: $("#node-root"), quiz: $("#quiz-root"), collection: $("#collection-root"), report: $("#report-root"), inventory: $("#inventory-root"), notebook: $("#notebook-root") };
+    roots = { map: $("#map-root"), middle: $("#middle-root"), node: $("#node-root"), quiz: $("#quiz-root"), collection: $("#collection-root"), report: $("#report-root"), inventory: $("#inventory-root"), notebook: $("#notebook-root") };
     window.SaveManager.load();
     if (window.AchievementManager) window.AchievementManager.checkAchievements(false);
     updateHud();
@@ -234,6 +246,6 @@
     });
   }
 
-  window.ShakaiApp = { toast: toast, showTab: showTab, openNode: openNode, startQuiz: startQuiz, resumeQuiz: resumeQuiz, openReport: openReport };
+  window.ShakaiApp = { toast: toast, showTab: showTab, openNode: openNode, startQuiz: startQuiz, resumeQuiz: resumeQuiz, openReport: openReport, openMiddle: openMiddle, startWritten: startWritten };
   document.addEventListener("DOMContentLoaded", init);
 }());

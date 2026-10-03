@@ -183,7 +183,7 @@ test('ruby toggles and fictional tables are labelled', () => {
   assert.match(w.QuizEngine.diagram(q), /学習用の架空データ/);
 });
 test('120 original middle questions have explicit scope, sources, balanced answers and multiple skills', () => {
-  const { w } = create(); const courses = Object.values(w.MIDDLE_COURSES), ids = new Set(), stems = new Set();
+  const { w } = create(); const courses = Object.values(w.MIDDLE_COURSES).filter(c => !c.id.startsWith('middle_')), ids = new Set(), stems = new Set();
   assert.equal(courses.length, 8);
   for (const c of courses) {
     assert.equal(c.questions.length, 15); assert.ok(new Set(c.questions.map(q => q.skill)).size >= 4);
@@ -200,7 +200,7 @@ test('120 original middle questions have explicit scope, sources, balanced answe
 });
 test('all eight middle courses save independent completion without elementary unlocks or rare rewards', () => {
   const env = create(), { w } = env, bankBefore = JSON.stringify(w.QUESTION_BANK);
-  for (const id of Object.keys(w.MIDDLE_COURSES)) {
+  for (const id of Object.keys(w.MIDDLE_COURSES).filter(id => !id.startsWith('middle_'))) {
     const nodeId = Object.keys(w.NODES_DATA).find(n => w.NODES_DATA[n].lineId === id && w.NODES_DATA[n].order === 1);
     w.SaveManager.setNodeProgress(nodeId, { basicClear: true });
     const before = JSON.stringify(w.SaveManager.data().progress);
@@ -214,7 +214,7 @@ test('all eight middle courses save independent completion without elementary un
   }
   assert.equal(JSON.stringify(w.QUESTION_BANK), bankBefore);
   const reloaded = create(w.SaveManager.exportJSON());
-  assert.ok(Object.values(reloaded.w.SaveManager.data().middleProgress).every(p => p.perfect && p.bestCorrect === 15));
+  assert.ok(Object.entries(reloaded.w.SaveManager.data().middleProgress).filter(([id]) => !id.startsWith('middle_')).every(([, p]) => p.perfect && p.bestCorrect === 15));
 });
 test('middle retries, hints and review cannot inflate first correct counts, statistics or perfect records', () => {
   const env = create(), { w } = env; w.SaveManager.setNodeProgress('s5_koku01', { basicClear: true });
@@ -271,19 +271,19 @@ test('middle sessions shuffle copied banks and resume across branch routes; inva
 });
 test('legacy saves initialize middle progress and new records appear once in notebook and parent report', () => {
   const env = create(), { w } = env, legacy = JSON.parse(w.SaveManager.exportJSON()); delete legacy.middleProgress;
-  assert.equal(Object.keys(create(JSON.stringify(legacy)).w.SaveManager.data().middleProgress).length, 8);
+  assert.equal(Object.keys(create(JSON.stringify(legacy)).w.SaveManager.data().middleProgress).length, 12);
   w.SaveManager.setNodeProgress('s5_koku01', { basicClear: true });
   w.QuizEngine.start(env.root, 's5_koku01', 'extra', null, { replace: true, middleCourse: 's5_koku', mode: 'learn' });
   const q = w.QuizEngine.getState().questions[0]; w.QuizEngine.answer(env.root, (q.answer + 1) % 4);
   w.InventoryRenderer.notebook(env.root); assert.equal((env.root.innerHTML.match(/class="notebook-entry"/g) || []).length, 1);
   assert.match(env.root.innerHTML, /中学発展・地理/);
   w.ReportRenderer.render(env.root, () => {}); assert.match(env.root.innerHTML, /中学発展の記録/);
-  assert.equal((env.root.innerHTML.match(/<th scope="row">/g) || []).length, 24);
+  assert.equal((env.root.innerHTML.match(/<th scope="row">/g) || []).length, 55);
   assert.match(w.SocialQuestions.ruby('年較差と立憲主義'), /ねんかくさ/);
 });
 test('96 multi-source challenges have unique content, consistent rationale mappings and no elementary leakage', () => {
   const { w } = create(), ids = new Set(), stems = new Set();
-  for (const c of Object.values(w.MIDDLE_COURSES)) {
+  for (const c of Object.values(w.MIDDLE_COURSES).filter(c => !c.id.startsWith('middle_'))) {
     assert.equal(w.MiddleCourses.allQuestions(c.id).length, 27);
     for (const difficulty of ['applied', 'hard']) {
       const bank = w.MiddleCourses.bank(c.id, difficulty); assert.equal(bank.length, 6);
@@ -308,7 +308,7 @@ test('96 multi-source challenges have unique content, consistent rationale mappi
 
 test('all 16 upper-level courses keep independent mastery, first accuracy and idempotent rewards', () => {
   const env = create(), { w } = env;
-  for (const course of Object.keys(w.MIDDLE_COURSES)) {
+  for (const course of Object.keys(w.MIDDLE_COURSES).filter(id => !id.startsWith('middle_'))) {
     const nodeId = Object.keys(w.NODES_DATA).find(n => w.NODES_DATA[n].lineId === course && w.NODES_DATA[n].order === 1);
     w.SaveManager.setNodeProgress(nodeId, { basicClear: true });
     const elementary = JSON.stringify(w.SaveManager.data().progress);
@@ -328,7 +328,7 @@ test('all 16 upper-level courses keep independent mastery, first accuracy and id
   }
   assert.equal(w.SaveManager.data().owned.equipment.length, 0);
   const loaded = create(w.SaveManager.exportJSON());
-  for (const id of Object.keys(w.MIDDLE_COURSES)) for (const difficulty of ['applied', 'hard']) {
+  for (const id of Object.keys(w.MIDDLE_COURSES).filter(id => !id.startsWith('middle_'))) for (const difficulty of ['applied', 'hard']) {
     assert.equal(loaded.w.SaveManager.getMiddleProgress(id, difficulty).bestCorrect, 6);
   }
 });
@@ -418,7 +418,7 @@ test('upper sessions resume on branch routes and archive altered source material
     const saved = JSON.parse(raw); mutate(saved.activeSession); const bad = create(JSON.stringify(saved));
     assert.equal(bad.w.QuizEngine.resume(bad.root), false); assert.ok(bad.w.SaveManager.data().meta.archivedSession);
   }
-  w.ReportRenderer.render(env.root, () => {}); assert.equal((env.root.innerHTML.match(/<th scope="row">/g) || []).length, 24);
+  w.ReportRenderer.render(env.root, () => {}); assert.equal((env.root.innerHTML.match(/<th scope="row">/g) || []).length, 55);
   assert.match(env.root.innerHTML, /次に確かめたい考え方/);
 });
 

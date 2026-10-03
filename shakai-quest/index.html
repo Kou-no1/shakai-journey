@@ -33,7 +33,7 @@
           </svg>
         </div>
         <div>
-            <p class="eyebrow">小学3・4・5・6年 / 社会の冒険</p>
+            <p class="eyebrow">小学3〜6年・中学発展 / 社会の冒険</p>
           <h1>時空社会御朱印帳</h1>
         </div>
       </div>
@@ -46,6 +46,7 @@
 
     <nav class="tabbar" aria-label="メイン">
       <button class="tab active" type="button" data-tab="map">路線図</button>
+      <button class="tab" type="button" data-tab="middle">中学</button>
       <button class="tab" type="button" data-tab="collection">資料館</button>
       <button class="tab" type="button" data-tab="inventory">装備・仲間</button>
       <button class="tab" type="button" data-tab="notebook">学習ノート</button>
@@ -73,6 +74,8 @@
       <section id="screen-node" class="screen" aria-labelledby="node-title">
         <div id="node-root"></div>
       </section>
+
+      <section id="screen-middle" class="screen" aria-label="中学発展の地図"><div id="middle-root"></div></section>
 
       <section id="screen-quiz" class="screen" aria-labelledby="quiz-title">
         <div id="quiz-root"></div>
@@ -190,6 +193,9 @@
   <script src="data/content-upgrades.js"></script>
   <script src="data/middle-courses.js"></script>
   <script src="data/middle-challenges.js"></script>
+  <script src="data/middle-expansion.js"></script>
+  <script src="data/middle-written.js"></script>
+  <script src="data/middle-review.js"></script>
   <script src="data/rpg-data.js"></script>
   <script src="js/rpg-system.js"></script>
   <script src="js/save-manager.js"></script>
@@ -200,6 +206,8 @@
   <script src="js/report-renderer.js"></script>
   <script src="js/map-renderer.js"></script>
   <script src="js/quiz-engine.js"></script>
+  <script src="js/written-engine.js"></script>
+  <script src="js/middle-renderer.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
