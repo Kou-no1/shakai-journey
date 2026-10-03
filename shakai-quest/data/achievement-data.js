@@ -1,6 +1,14 @@
 // achievement-data.js
 // 実績と称号の定義。conditionはachievement-manager.jsが判定する。
 window.ACHIEVEMENT_DATA = {
+  ach_grade3_complete: {
+    title: "まちの探検家", desc: "3年の共通教材7駅をすべて探検した", priority: 30,
+    condition: { type: "lines_basic_clear", lineIds: ["s3_machi", "s3_work", "s3_safe", "s3_time"] }
+  },
+  ach_grade4_complete: {
+    title: "地域の探究者", desc: "4年の共通教材9駅をすべて探検した", priority: 30,
+    condition: { type: "lines_basic_clear", lineIds: ["s4_ken", "s4_life", "s4_safe", "s4_bunka", "s4_area"] }
+  },
   ach_koku_master: {
     title: "国土探検家", desc: "国土ライン5駅をすべて探検した", priority: 10,
     condition: { type: "line_basic_clear", lineId: "s5_koku" }
@@ -42,7 +50,7 @@ window.ACHIEVEMENT_DATA = {
     condition: { type: "lines_basic_clear", lineIds: ["s6_sei", "s6_rek", "s6_kok"] }
   },
   ach_all_complete: {
-    title: "時空社会御朱印帳マスター", desc: "36駅すべてを探検した", priority: 100,
+    title: "時空社会御朱印帳マスター", desc: "52駅すべてを探検した", priority: 100,
     condition: { type: "all_basic_clear" }
   },
   ach_meibutsu_complete: {
@@ -58,8 +66,8 @@ window.ACHIEVEMENT_DATA = {
     condition: { type: "extra_perfect_count", count: 5 }
   },
   ach_perfect_all: {
-    title: "パーフェクト旅人", desc: "「もっと知りたい！チャレンジ」を全36駅で全問正解した", priority: 80,
-    condition: { type: "extra_perfect_count", count: 36 }
+    title: "パーフェクト旅人", desc: "「おまけ・先取り」を全52駅で全問正解した", priority: 80,
+    condition: { type: "extra_perfect_count", count: 52 }
   },
   ach_kakera_500: {
     title: "", desc: "たびのかけらを500個集めた", priority: 0,

@@ -6,6 +6,7 @@
   <title>時空社会御朱印帳</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23F6EEE1'/%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%23B8544A' stroke-width='4' stroke-dasharray='4 5'/%3E%3Cpath d='M22 34h20M32 22v23' stroke='%23B8544A' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="rpg.css">
 </head>
 <body>
   <svg class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
@@ -32,7 +33,7 @@
           </svg>
         </div>
         <div>
-          <p class="eyebrow">時空をめぐる社会の旅</p>
+            <p class="eyebrow">小学3・4・5・6年 / 社会の冒険</p>
           <h1>時空社会御朱印帳</h1>
         </div>
       </div>
@@ -46,6 +47,8 @@
     <nav class="tabbar" aria-label="メイン">
       <button class="tab active" type="button" data-tab="map">路線図</button>
       <button class="tab" type="button" data-tab="collection">資料館</button>
+      <button class="tab" type="button" data-tab="inventory">装備・仲間</button>
+      <button class="tab" type="button" data-tab="notebook">学習ノート</button>
       <button class="tab" type="button" data-tab="settings">設定</button>
     </nav>
 
@@ -59,7 +62,7 @@
         </div>
         <div class="section-head">
           <div>
-            <p class="eyebrow">8ライン・36駅</p>
+            <p class="eyebrow">学年別の冒険</p>
             <h2 id="map-title">旅の地図</h2>
           </div>
           <button id="reset-view-btn" class="ghost-button" type="button">地図へ戻る</button>
@@ -102,18 +105,20 @@
           <label class="switch-row">
             <span>
               <strong>ふりがな表示</strong>
-              <small>将来の問題文ルビ用設定です。</small>
             </span>
             <input id="setting-ruby" type="checkbox" checked>
           </label>
           <label class="switch-row">
             <span>
               <strong>効果音</strong>
-              <small>Web Audio APIだけを使います。</small>
             </span>
             <input id="setting-sound" type="checkbox" checked>
           </label>
+          <label class="switch-row"><span><strong>動きを減らす</strong></span><input id="setting-reduce-motion" type="checkbox"></label>
+          <p id="save-status" role="status"></p>
           <button id="open-report-btn" class="ghost-button" type="button">保護者レポートを開く</button>
+          <button id="export-save-btn" class="ghost-button" type="button">学習記録を書き出す</button>
+          <label class="import-label">学習記録を読み込む<input id="import-save-file" type="file" accept="application/json,.json"></label>
           <button id="reset-save-btn" class="danger-button" type="button">セーブを初期化</button>
         </div>
       </section>
@@ -127,6 +132,8 @@
         </div>
         <div id="report-root"></div>
       </section>
+      <section id="screen-inventory" class="screen" aria-label="装備・仲間"><div id="inventory-root"></div></section>
+      <section id="screen-notebook" class="screen" aria-label="学習ノート"><div id="notebook-root"></div></section>
     </main>
   </div>
 
@@ -140,6 +147,7 @@
   <script src="data/chara-data.js"></script>
   <script src="data/item-data.js"></script>
   <script src="data/achievement-data.js"></script>
+  <script src="data/curriculum-rpg.js"></script>
   <script src="data/questions/s5_koku01.js"></script>
   <script src="data/questions/s5_koku02.js"></script>
   <script src="data/questions/s5_koku03.js"></script>
@@ -177,7 +185,14 @@
   <script src="data/questions/s6_kok01.js"></script>
   <script src="data/questions/s6_kok02.js"></script>
   <script src="js/svg-icons.js"></script>
+  <script src="js/question-model.js"></script>
+  <script src="data/questions/grades34.js"></script>
+  <script src="data/content-upgrades.js"></script>
+  <script src="data/rpg-data.js"></script>
+  <script src="js/rpg-system.js"></script>
   <script src="js/save-manager.js"></script>
+  <script src="js/rewards.js"></script>
+  <script src="js/inventory-renderer.js"></script>
   <script src="js/collection-renderer.js"></script>
   <script src="js/achievement-manager.js"></script>
   <script src="js/report-renderer.js"></script>

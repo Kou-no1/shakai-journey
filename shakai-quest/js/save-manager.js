@@ -1,255 +1,165 @@
 (function () {
   "use strict";
-
-  var SAVE_KEY = "shakai_quest_save_v1";
-  var currentData = null;
-
-  function nodeIds() {
-    return Object.keys(window.NODES_DATA || {});
+  var SAVE_KEY = "shakai_quest_save_v1", SCHEMA = 2;
+  var currentData = null, protectedRaw = null, warning = "";
+  function ids() { return Object.keys(window.NODES_DATA || {}); }
+  function stats() { return { correct: 0, total: 0, lastAttemptAt: null }; }
+  function progress() {
+    return { unlocked: false, basicClear: false, advancedClear: false, extraClear: false, extraPerfectClear: false,
+      branchChosen: null, basicStats: stats(), advancedStats: stats(), extraStats: stats(), seenQuestionIds: [], masteredQuestionIds: [], branches: {} };
   }
-
-  function emptyStats() {
-    return { correct: 0, total: 0, lastAttemptAt: null };
-  }
-
-  function emptyProgress(unlocked) {
-    return {
-      unlocked: !!unlocked,
-      basicClear: false,
-      advancedClear: false,
-      extraClear: false,
-      branchChosen: null,
-      basicStats: emptyStats(),
-      advancedStats: emptyStats(),
-      extraStats: emptyStats(),
-      extraPerfectClear: false
-    };
-  }
-
-  function findNodeByLineOrder(lineId, order) {
-    return nodeIds().find(function (id) {
-      var node = window.NODES_DATA[id];
-      return node.lineId === lineId && node.order === order;
-    }) || null;
-  }
-
-  function hasQuestionBank(nodeId) {
-    return !!(window.QUESTION_BANK && window.QUESTION_BANK[nodeId]);
-  }
-
-  function prerequisiteId(node) {
-    if (!node) return null;
-    if (node.lineId === "s6_rek" && node.order === 1) return "s6_sei03";
-    if (node.lineId === "s6_kok" && node.order === 1) return "s6_rek12";
-    if (node.order > 1) return findNodeByLineOrder(node.lineId, node.order - 1);
-    return null;
-  }
-
-  function canDemoBypass(nodeId, data) {
-    var node = window.NODES_DATA[nodeId];
-    if (!hasQuestionBank(nodeId) || !node) return false;
-    var prereq = prerequisiteId(node);
-    if (!prereq) return true;
-    var progress = (data && data.progress && data.progress[prereq]) || emptyProgress(false);
-    return !progress.basicClear && !hasQuestionBank(prereq);
-  }
-
   function getDefault() {
-    var progress = {};
-    nodeIds().forEach(function (id) {
+    var p = {}; ids().forEach(function (id) {
+      p[id] = progress();
       var node = window.NODES_DATA[id];
-      var firstRoute = node.order === 1 && (node.lineId.indexOf("s5_") === 0 || node.lineId.indexOf("s6_") === 0);
-      progress[id] = emptyProgress(firstRoute);
+      p[id].unlocked = node.order === 1;
+      if (node.branch) node.branch.options.forEach(function (b) { p[id].branches[b.branchId] = progress(); });
     });
-    return {
-      player: { name: "旅人", level: 1, exp: 0, title: "見習い探検者" },
-      owned: { meibutsu: [], ijin: [], chara: [], items: [], achievements: [], kakeraCount: 0, commonItems: {} },
-      progress: progress,
-      settings: { ruby: true, sound: true },
-      meta: { lastPlayedAt: null }
-    };
+    return { schema: SCHEMA, player: { name: "旅人", level: 1, exp: 0, title: "見習い探検者", equipped: { sword: null, shield: null, armor: null, gauntlet: null } },
+      owned: { meibutsu: [], ijin: [], chara: [], companions: [], items: [], achievements: [], equipment: [], monsters: [], clearedMonsters: [], kakeraCount: 0, commonItems: {}, consumables: { potion: 2, hint: 1 } },
+      progress: p, questionStats: {}, questionBags: {}, encounterBags: {}, activeSession: null, activeCompanions: [], rewardedSessions: [],
+      settings: { ruby: true, sound: false, motion: true, lastGrade: 5 }, meta: { lastPlayedAt: null } };
   }
-
-  function isNodeUnlocked(nodeId, dataArg) {
-    var next = dataArg || currentData || getDefault();
-    var node = window.NODES_DATA[nodeId];
-    if (!node) return false;
-    if (node.lineId.indexOf("s5_") === 0 || node.lineId === "s6_sei") {
-      if (node.order === 1) return true;
-      var prev = findNodeByLineOrder(node.lineId, node.order - 1);
-      var prevClear = !!(prev && next.progress && next.progress[prev] && next.progress[prev].basicClear);
-      return prevClear || canDemoBypass(nodeId, next);
-    }
-    if (node.lineId === "s6_rek") {
-      if (node.order === 1) return true;
-      var prevRek = findNodeByLineOrder("s6_rek", node.order - 1);
-      return !!(prevRek && next.progress[prevRek] && next.progress[prevRek].basicClear) || canDemoBypass(nodeId, next);
-    }
-    if (node.lineId === "s6_kok") {
-      if (node.order === 1) return true;
-      var prevKok = findNodeByLineOrder("s6_kok", node.order - 1);
-      return !!(prevKok && next.progress[prevKok] && next.progress[prevKok].basicClear) || canDemoBypass(nodeId, next);
-    }
-    return false;
+  function number(value, fallback) { return Number.isFinite(Number(value)) && Number(value) >= 0 ? Math.floor(Number(value)) : fallback; }
+  function unique(value) { return Array.isArray(value) ? Array.from(new Set(value.filter(function (id) { return typeof id === "string"; }))) : []; }
+  function object(value) { return value && typeof value === "object" && !Array.isArray(value); }
+  function date(value) { return typeof value === "string" && Number.isFinite(Date.parse(value)) ? value : null; }
+  function normalizeStats(value) {
+    value = object(value) ? value : {};
+    var total = number(value.total, 0);
+    return { correct: Math.min(total, number(value.correct, 0)), total: total, lastAttemptAt: date(value.lastAttemptAt) };
   }
-
-  function normalizeStats(stats) {
-    var base = emptyStats();
-    var src = stats && typeof stats === "object" ? stats : {};
-    base.correct = Math.max(0, Number(src.correct) || 0);
-    base.total = Math.max(0, Number(src.total) || 0);
-    if (base.correct > base.total) base.correct = base.total;
-    base.lastAttemptAt = src.lastAttemptAt || null;
-    return base;
+  function normalizeProgress(value) {
+    var p = Object.assign(progress(), object(value) ? value : {});
+    ["basicClear", "advancedClear", "extraClear", "extraPerfectClear"].forEach(function (k) { p[k] = p[k] === true; });
+    ["basic", "advanced", "extra"].forEach(function (k) { p[k + "Stats"] = normalizeStats(p[k + "Stats"]); });
+    p.seenQuestionIds = unique(p.seenQuestionIds); p.masteredQuestionIds = unique(p.masteredQuestionIds);
+    p.branches = object(p.branches) ? p.branches : {};
+    return p;
   }
-
-  function normalize(data) {
+  function normalize(src) {
     var base = getDefault();
-    var src = data && typeof data === "object" ? data : {};
     base.player = Object.assign(base.player, src.player || {});
-    base.player.exp = Number(base.player.exp) || 0;
-    base.player.level = Math.floor(base.player.exp / 100) + 1;
+    base.player.exp = number(base.player.exp, 0); base.player.level = Math.floor(base.player.exp / 100) + 1;
+    base.player.name = typeof base.player.name === "string" ? base.player.name.slice(0, 30) : "旅人";
+    base.player.equipped = Object.assign(getDefault().player.equipped, object(src.player && src.player.equipped) ? src.player.equipped : {});
     base.owned = Object.assign(base.owned, src.owned || {});
-    ["meibutsu", "ijin", "chara", "items", "achievements"].forEach(function (key) {
-      base.owned[key] = Array.isArray(base.owned[key]) ? Array.from(new Set(base.owned[key])) : [];
-    });
-    base.owned.kakeraCount = Number(base.owned.kakeraCount) || 0;
-    base.owned.commonItems = base.owned.commonItems && typeof base.owned.commonItems === "object" ? base.owned.commonItems : {};
+    ["meibutsu", "ijin", "chara", "companions", "items", "achievements", "equipment", "monsters", "clearedMonsters"].forEach(function (k) { base.owned[k] = unique(base.owned[k]); });
+    base.owned.kakeraCount = number(base.owned.kakeraCount, 0);
+    base.owned.commonItems = object(base.owned.commonItems) ? base.owned.commonItems : {};
+    Object.keys(base.owned.commonItems).forEach(function (k) { base.owned.commonItems[k] = number(base.owned.commonItems[k], 0); });
+    // A consumed item stays at zero; starter supplies only apply when an old save lacks this field.
+    base.owned.consumables = object(src.owned && src.owned.consumables) ? { potion: number(src.owned.consumables.potion, 0), hint: number(src.owned.consumables.hint, 0) } : base.owned.consumables;
     base.settings = Object.assign(base.settings, src.settings || {});
-    base.meta = Object.assign(base.meta, src.meta || {});
-    base.meta.lastPlayedAt = base.meta.lastPlayedAt || null;
-    nodeIds().forEach(function (id) {
-      base.progress[id] = Object.assign(base.progress[id], (src.progress && src.progress[id]) || {});
-      base.progress[id].unlocked = isNodeUnlocked(id, base);
-      base.progress[id].branchChosen = base.progress[id].branchChosen || null;
-      base.progress[id].basicStats = normalizeStats(base.progress[id].basicStats);
-      base.progress[id].advancedStats = normalizeStats(base.progress[id].advancedStats);
-      base.progress[id].extraStats = normalizeStats(base.progress[id].extraStats);
-      base.progress[id].extraPerfectClear = !!base.progress[id].extraPerfectClear;
+    base.settings.lastGrade = [3, 4, 5, 6].includes(Number(base.settings.lastGrade)) ? Number(base.settings.lastGrade) : 5;
+    base.meta = Object.assign(base.meta, src.meta || {}); base.meta.lastPlayedAt = date(base.meta.lastPlayedAt);
+    ids().forEach(function (id) {
+      var p = normalizeProgress(src.progress && src.progress[id]), node = window.NODES_DATA[id];
+      if (node.branch) {
+        node.branch.options.forEach(function (b) {
+          p.branches[b.branchId] = normalizeProgress(p.branches[b.branchId] || (p.branchChosen === b.branchId ? Object.assign({}, p, { branches: {} }) : {}));
+          p.branches[b.branchId].branches = {};
+        });
+        if (!node.branch.options.some(function (b) { return b.branchId === p.branchChosen; })) p.branchChosen = null;
+      }
+      base.progress[id] = p;
     });
+    base.questionStats = {};
+    Object.keys(object(src.questionStats) ? src.questionStats : {}).forEach(function (id) {
+      var value = object(src.questionStats[id]) ? src.questionStats[id] : {}, attempts = number(value.attempts, 0);
+      base.questionStats[id] = { attempts: attempts, correct: Math.min(attempts, number(value.correct, 0)), hints: number(value.hints, 0),
+        reviews: Math.min(attempts, number(value.reviews, 0)), lastCorrect: value.lastCorrect === true, lastAttemptAt: date(value.lastAttemptAt), contentVersion: number(value.contentVersion, 1) };
+    });
+    ["questionBags", "encounterBags"].forEach(function (k) {
+      base[k] = {}; Object.keys(object(src[k]) ? src[k] : {}).forEach(function (key) { base[k][key] = unique(src[k][key]); });
+    });
+    base.activeSession = object(src.activeSession) ? src.activeSession : null;
+    base.activeCompanions = unique(src.activeCompanions).filter(function (id) { return window.COMPANION_DATA[id] && (base.owned.chara.includes(id) || base.owned.companions.includes(id)); }).slice(0, 2);
+    base.rewardedSessions = unique(src.rewardedSessions);
+    if (window.SocialRPG) {
+      base.owned.items.forEach(function (id) { if (window.EQUIPMENT_DATA[id] && !base.owned.equipment.includes(id)) base.owned.equipment.push(id); });
+      Object.keys(base.player.equipped).forEach(function (slot) {
+        var id = base.player.equipped[slot], eq = window.EQUIPMENT_DATA[id];
+        if (!eq || eq.slot !== slot || !base.owned.equipment.includes(id)) base.player.equipped[slot] = null;
+      });
+    }
+    ids().forEach(function (id) { base.progress[id].unlocked = isNodeUnlocked(id, base); });
     return base;
   }
-
-  function notify() {
-    window.dispatchEvent(new CustomEvent("shakai:save", { detail: currentData }));
+  function validate(src) {
+    if (!object(src) || !object(src.player) || !object(src.owned) || !object(src.progress)) throw new Error("セーブの形式を確認できません。元データを保護しています。");
+    if (src.schema !== undefined && src.schema !== 1 && src.schema !== SCHEMA) throw new Error("この版では読めないセーブです。元データを保護しています。");
+    ["meibutsu", "ijin", "chara", "items"].forEach(function (key) { if (!Array.isArray(src.owned[key])) throw new Error("所持品のデータが壊れています。元データを保護しています。"); });
+    if (!Number.isFinite(Number(src.player.exp)) || Number(src.player.exp) < 0) throw new Error("経験値のデータを確認できません。");
+    return src;
   }
-
+  function notify(name) { window.dispatchEvent(new CustomEvent(name || "shakai:save", { detail: name ? warning : currentData })); }
+  function write() {
+    if (protectedRaw !== null) return false;
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(currentData)); warning = ""; return true; }
+    catch (err) { warning = "保存できませんでした。設定から学習記録を書き出してください。"; notify("shakai:save-error"); return false; }
+  }
   function load() {
+    var raw = null;
     try {
-      currentData = normalize(JSON.parse(localStorage.getItem(SAVE_KEY) || "null"));
-    } catch (err) {
-      currentData = normalize(null);
-    }
-    localStorage.setItem(SAVE_KEY, JSON.stringify(currentData));
+      raw = localStorage.getItem(SAVE_KEY);
+      currentData = raw === null ? getDefault() : normalize(validate(JSON.parse(raw)));
+      write();
+    } catch (err) { protectedRaw = raw === null ? "" : raw; warning = err.message || "セーブを読めませんでした。"; currentData = getDefault(); }
+    ids().forEach(function (id) { currentData.progress[id].unlocked = isNodeUnlocked(id, currentData); });
     return currentData;
   }
-
-  function save(data) {
-    currentData = normalize(data || currentData || getDefault());
-    localStorage.setItem(SAVE_KEY, JSON.stringify(currentData));
-    notify();
-    return currentData;
+  function save(next) {
+    currentData = next || currentData || getDefault();
+    currentData.player.exp = number(currentData.player.exp, 0); currentData.player.level = Math.floor(currentData.player.exp / 100) + 1;
+    ids().forEach(function (id) { currentData.progress[id].unlocked = isNodeUnlocked(id, currentData); });
+    write(); notify(); return currentData;
   }
-
-  function data() {
-    return currentData || load();
+  function data() { return currentData || load(); }
+  function transaction(fn) { var result = fn(data()); save(); return result; }
+  function isNodeUnlocked(id, arg) {
+    var s = arg || data(), node = window.NODES_DATA[id];
+    if (!node) return false;
+    if (node.order === 1) return true;
+    var previous = ids().find(function (k) { var n = window.NODES_DATA[k]; return n.lineId === node.lineId && n.order === node.order - 1; });
+    return !!(previous && s.progress[previous] && s.progress[previous].basicClear);
   }
-
-  function addKakera(n) {
-    var next = data();
-    next.owned.kakeraCount += Math.max(0, Number(n) || 0);
-    return save(next);
+  function getNodeProgress(id) { return data().progress[id]; }
+  function routeProgress(id, branch) { var p = getNodeProgress(id); return branch && p.branches[branch] ? p.branches[branch] : p; }
+  function setNodeProgress(id, patch, branch) {
+    var p = routeProgress(id, branch); Object.assign(p, patch);
+    if (branch) ["basicClear", "advancedClear", "extraClear", "extraPerfectClear"].forEach(function (key) {
+      getNodeProgress(id)[key] = Object.values(getNodeProgress(id).branches).some(function (b) { return b[key]; });
+    });
+    save(); return p;
   }
-
-  function addExp(n) {
-    var next = data();
-    next.player.exp += Math.max(0, Number(n) || 0);
-    next.player.level = Math.floor(next.player.exp / 100) + 1;
-    return save(next);
+  function chooseBranch(id, branch) {
+    var node = window.NODES_DATA[id];
+    if (!node || !node.branch || !node.branch.options.some(function (b) { return b.branchId === branch; })) return null;
+    getNodeProgress(id).branchChosen = branch; save(); return routeProgress(id, branch);
   }
-
-  function addCommonItem(kakeraId) {
-    if (!kakeraId) return data();
-    var next = data();
-    next.owned.commonItems[kakeraId] = (Number(next.owned.commonItems[kakeraId]) || 0) + 1;
-    return save(next);
-  }
-
   function grantCollectible(type, id) {
-    var next = data();
-    var key = type === "item" ? "items" : type;
-    if (!next.owned[key] || !id) return next;
-    if (next.owned[key].indexOf(id) === -1) {
-      next.owned[key].push(id);
-      save(next);
-    }
-    return next;
+    var list = data().owned[type === "item" ? "items" : type];
+    if (list && id && !list.includes(id)) { list.push(id); save(); }
+    return data();
   }
-
-  function touchLastPlayed(date) {
-    var next = data();
-    next.meta.lastPlayedAt = date || new Date().toISOString();
-    return save(next);
+  function recordAnswer(id, tier, correct, stamp) {
+    var p = routeProgress(id, data().progress[id].branchChosen), s = p[tier + "Stats"];
+    s.total++; if (correct) s.correct++; s.lastAttemptAt = stamp || new Date().toISOString();
+    if (p !== data().progress[id]) { var a = data().progress[id][tier + "Stats"]; a.total++; if (correct) a.correct++; a.lastAttemptAt = s.lastAttemptAt; }
+    data().meta.lastPlayedAt = s.lastAttemptAt; save(); return s;
   }
-
-  function recordAnswer(nodeId, tier, correct, date) {
-    var key = tier + "Stats";
-    var next = data();
-    if (!next.progress[nodeId]) next.progress[nodeId] = emptyProgress(false);
-    if (!next.progress[nodeId][key]) next.progress[nodeId][key] = emptyStats();
-    var stamp = date || new Date().toISOString();
-    next.progress[nodeId][key].total += 1;
-    if (correct) next.progress[nodeId][key].correct += 1;
-    next.progress[nodeId][key].lastAttemptAt = stamp;
-    next.meta.lastPlayedAt = stamp;
-    return save(next).progress[nodeId][key];
-  }
-
-  function getNodeProgress(nodeId) {
-    var next = data();
-    if (!next.progress[nodeId]) {
-      next.progress[nodeId] = emptyProgress(false);
-      save(next);
-    }
-    return next.progress[nodeId];
-  }
-
-  function setNodeProgress(nodeId, patch) {
-    var next = data();
-    next.progress[nodeId] = Object.assign(emptyProgress(false), next.progress[nodeId] || {}, patch || {});
-    return save(next).progress[nodeId];
-  }
-
-  function chooseBranch(nodeId, branchId) {
-    var node = window.NODES_DATA[nodeId];
-    if (!node || !node.branch) return null;
-    var exists = node.branch.options.some(function (opt) { return opt.branchId === branchId; });
-    if (!exists) return null;
-    return setNodeProgress(nodeId, { branchChosen: branchId });
-  }
-
-  function reset() {
-    localStorage.removeItem(SAVE_KEY);
-    return save(getDefault());
-  }
-
+  function reset() { protectedRaw = null; warning = ""; currentData = getDefault(); return save(); }
+  function importJSON(raw) { var migrated = normalize(validate(JSON.parse(raw))); protectedRaw = null; warning = ""; currentData = migrated; save(); return currentData; }
   window.SaveManager = {
-    key: SAVE_KEY,
-    load: load,
-    save: save,
-    data: data,
-    getDefault: getDefault,
-    addKakera: addKakera,
-    addExp: addExp,
-    addCommonItem: addCommonItem,
-    grantCollectible: grantCollectible,
-    touchLastPlayed: touchLastPlayed,
-    recordAnswer: recordAnswer,
-    getNodeProgress: getNodeProgress,
-    setNodeProgress: setNodeProgress,
-    chooseBranch: chooseBranch,
-    isNodeUnlocked: isNodeUnlocked,
-    hasQuestionBank: hasQuestionBank,
-    reset: reset
+    key: SAVE_KEY, schema: SCHEMA, load: load, save: save, data: data, getDefault: getDefault, transaction: transaction,
+    getNodeProgress: getNodeProgress, routeProgress: routeProgress, setNodeProgress: setNodeProgress, chooseBranch: chooseBranch, isNodeUnlocked: isNodeUnlocked,
+    hasQuestionBank: function (id) { return !!window.QUESTION_BANK[id]; }, grantCollectible: grantCollectible, recordAnswer: recordAnswer,
+    addKakera: function (n) { data().owned.kakeraCount += number(n, 0); return save(); },
+    addExp: function (n) { data().player.exp += number(n, 0); return save(); },
+    addCommonItem: function (id) { var p = data().owned.commonItems; p[id] = number(p[id], 0) + 1; return save(); },
+    touchLastPlayed: function (stamp) { data().meta.lastPlayedAt = stamp || new Date().toISOString(); return save(); },
+    exportJSON: function () { return protectedRaw !== null ? protectedRaw : JSON.stringify(data(), null, 2); },
+    importJSON: importJSON, reset: reset, status: function () { return { protected: protectedRaw !== null, warning: warning }; }
   };
 }());

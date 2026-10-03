@@ -39,7 +39,6 @@
       if (type === "chara" && node.charaId) uniqPush(ids, node.charaId);
       if (node.branch && node.branch.options) {
         node.branch.options.forEach(function (option) {
-          if (progress.branchChosen && progress.branchChosen !== option.branchId) return;
           if (type === "meibutsu") (option.meibutsuIds || []).forEach(function (id) { uniqPush(ids, id); });
           if (type === "chara") uniqPush(ids, option.charaId);
         });

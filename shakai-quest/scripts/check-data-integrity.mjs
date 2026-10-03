@@ -7,6 +7,8 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(scriptDir, "..");
 const context = { window: {} };
 context.window.window = context.window;
+context.document = { addEventListener() {} };
+context.window.addEventListener = function () {};
 vm.createContext(context);
 
 function run(relativePath) {
@@ -29,12 +31,16 @@ function uniqPush(list, id) {
   "data/achievement-data.js"
 ].forEach(run);
 
-run("js/svg-icons.js");
-
 fs.readdirSync(path.join(appRoot, "data", "questions"))
-  .filter((file) => file.endsWith(".js"))
+  .filter((file) => file.endsWith(".js") && file !== "grades34.js")
   .sort()
   .forEach((file) => run(path.join("data", "questions", file)));
+run("data/curriculum-rpg.js");
+run("js/svg-icons.js");
+run("js/question-model.js");
+run("data/questions/grades34.js");
+run("data/content-upgrades.js");
+run("data/rpg-data.js");
 
 const {
   NODES_DATA,
@@ -54,9 +60,12 @@ const charaIds = [];
 const iconKeys = [];
 const achievementIds = Object.keys(ACHIEVEMENT_DATA || {});
 
-if (nodeIds.length !== 36) errors.push(`expected 36 nodes, got ${nodeIds.length}`);
-if (questionIds.length !== 36) errors.push(`expected 36 question banks, got ${questionIds.length}`);
-if (achievementIds.length !== 16) errors.push(`expected 16 achievements, got ${achievementIds.length}`);
+if (nodeIds.length !== 52) errors.push(`expected 52 nodes, got ${nodeIds.length}`);
+if (questionIds.length !== 52) errors.push(`expected 52 question banks, got ${questionIds.length}`);
+if (achievementIds.length !== 18) errors.push(`expected 18 achievements, got ${achievementIds.length}`);
+if (Object.keys(context.window.MONSTER_DATA).length !== 255) errors.push("expected 255 fictional encounters");
+if (Object.keys(context.window.EQUIPMENT_DATA).length !== 124) errors.push("expected 124 equipment definitions");
+if (Object.keys(context.window.COMPANION_DATA).length !== 73) errors.push("expected 73 fictional companion definitions");
 
 nodeIds.forEach((nodeId) => {
   const node = NODES_DATA[nodeId];
@@ -96,6 +105,21 @@ nodeIds.forEach((nodeId) => {
   if (node.ijinId && !IJIN_DATA[node.ijinId]) errors.push(`missing ijin: ${node.ijinId}`);
   uniqPush(charaIds, node.charaId);
   if (!ShakaiIcons.hasStationBackground(nodeId)) errors.push(`missing station background: ${nodeId}`);
+  const branches = node.branch ? node.branch.options.map(b => b.branchId) : [null];
+  for (const branch of branches) for (const tier of ["basic", "advanced", "extra"]) {
+    const questions = context.window.SocialQuestions.bank(nodeId, branch, tier);
+    if (tier === "extra" && questions.length !== 15) errors.push(`extra must have 15 questions: ${nodeId}/${branch}`);
+    for (const q of questions) {
+      if (!q.id || !q.stem || !q.explanation || !q.subId || !q.curriculumRef || !q.targetStage || !q.contentVersion || !q.context) errors.push(`missing metadata: ${q.id}`);
+      if (!["mc4", "ox"].includes(q.type) || q.choices.length !== (q.type === "mc4" ? 4 : 2) || !Number.isInteger(q.answer) || !q.choices[q.answer]) errors.push(`invalid question: ${q.id}`);
+      if (new Set(q.choices).size !== q.choices.length) errors.push(`duplicate choices: ${q.id}`);
+      if (tier !== "extra" && q.targetStage !== `elementary${nodeId[1]}`) errors.push(`grade scope mismatch: ${q.id}`);
+      if (q.diagramData && q.diagramData.fictional !== true && (!q.diagramData.source || !Number.isInteger(q.diagramData.referenceYear))) errors.push(`missing real-data source/year: ${q.id}`);
+    }
+  }
+  if (!context.window.EQUIPMENT_DATA[`rare_${nodeId}`]) errors.push(`missing node rare: ${nodeId}`);
+  if (nodeId !== "s6_rek11" && !context.window.COMPANION_DATA[`${nodeId}_advanced`]) errors.push(`missing companion: ${nodeId}`);
+  if (nodeId === "s6_rek11" && node.encounters.length) errors.push("war node must not have enemies");
 });
 
 Object.keys(MEIBUTSU_DATA || {}).forEach((id) => uniqPush(iconKeys, MEIBUTSU_DATA[id].svgKey || id));
@@ -172,5 +196,8 @@ console.log(JSON.stringify({
   charaData: dataCharaIds.length,
   achievements: achievementIds.length,
   svgIcons: iconKeys.length,
-  stationBackgrounds: nodeIds.length
+  stationBackgrounds: nodeIds.length,
+  fictionalEncounters: Object.keys(context.window.MONSTER_DATA).length,
+  companions: Object.keys(context.window.COMPANION_DATA).length,
+  equipment: Object.keys(context.window.EQUIPMENT_DATA).length
 }, null, 2));

@@ -1,29 +1,29 @@
 :root {
-  --sky-a: #EAD9D6;
-  --sky-b: #D9CEE0;
-  --sky-c: #C9D8CE;
-  --paper: #F6EEE1;
-  --paper-deep: #EDE1CB;
-  --paper-soft: #FBF6EA;
-  --paper-line: #D9C9A8;
-  --ink: #5C4F42;
-  --ink-soft: #8B8070;
-  --ink-faint: #B6AB98;
-  --stamp: #B8544A;
-  --stamp-deep: #8F3F37;
-  --line-koku: #8FAE7A;
-  --line-shoku: #D9B565;
-  --line-kogyo: #7D9AAA;
-  --line-joho: #A08CBD;
-  --line-kankyo: #7CA085;
-  --line-sei: #7C8CA0;
-  --line-rek: #BD6355;
-  --line-kok: #6FA3AC;
-  --ok: #6F9B79;
-  --warn: #C39155;
-  --locked: #A79B87;
-  --gold: #C9A85E;
-  --shadow: 0 22px 70px rgba(92, 79, 66, .22);
+  --sky-a: #201D46;
+  --sky-b: #141C38;
+  --sky-c: #142D42;
+  --paper: #FFFFFF;
+  --paper-deep: #EDF3FA;
+  --paper-soft: #F7FAFE;
+  --paper-line: #CAD7E8;
+  --ink: #23354F;
+  --ink-soft: #536981;
+  --ink-faint: #6C7F93;
+  --stamp: #167A96;
+  --stamp-deep: #155C73;
+  --line-koku: #53AD85;
+  --line-shoku: #D5AB4C;
+  --line-kogyo: #5A9ABB;
+  --line-joho: #A08AC4;
+  --line-kankyo: #55A99C;
+  --line-sei: #7695CF;
+  --line-rek: #CA7E79;
+  --line-kok: #48ACBC;
+  --ok: #278561;
+  --warn: #9F6430;
+  --locked: #758294;
+  --gold: #E3B857;
+  --shadow: 0 22px 70px rgba(4, 10, 30, .35);
   --radius: 8px;
 }
 
@@ -147,7 +147,7 @@ input:focus-visible {
 
 .brand h1 {
   font-family: "Klee One", "Hiragino Mincho ProN", "Yu Mincho", serif;
-  font-size: clamp(24px, 3.5vw, 36px);
+  font-size: 28px;
 }
 
 .eyebrow {
@@ -155,7 +155,7 @@ input:focus-visible {
   color: var(--ink-soft);
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: .08em;
+  letter-spacing: 0;
 }
 
 .player-card {

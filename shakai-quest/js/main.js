@@ -4,6 +4,7 @@
   var roots = {};
   var achievementQueue = [];
   var achievementShowing = false;
+  var achievementReturnFocus = null;
 
   function $(selector) {
     return document.querySelector(selector);
@@ -35,6 +36,7 @@
     el.className = "toast";
     el.textContent = message;
     root.appendChild(el);
+    while (root.children.length > 2) root.firstElementChild.remove();
     window.setTimeout(function () {
       el.style.opacity = "0";
       el.style.transform = "translateY(6px)";
@@ -71,7 +73,12 @@
     overlay.querySelector('[data-action="close-achievement"]').addEventListener("click", function () {
       overlay.classList.remove("show");
       achievementShowing = false;
+      if (!achievementQueue.length && achievementReturnFocus && achievementReturnFocus.isConnected) achievementReturnFocus.focus();
       window.setTimeout(showNextAchievement, 170);
+    });
+    overlay.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") overlay.querySelector('[data-action="close-achievement"]').click();
+      if (e.key === "Tab") { e.preventDefault(); overlay.querySelector('[data-action="close-achievement"]').focus(); }
     });
     return overlay;
   }
@@ -86,9 +93,11 @@
     overlay.classList.remove("show");
     void overlay.offsetWidth;
     overlay.classList.add("show");
+    overlay.querySelector('[data-action="close-achievement"]').focus();
   }
 
   function enqueueAchievements(list) {
+    if (!achievementShowing) achievementReturnFocus = document.activeElement;
     achievementQueue = achievementQueue.concat(list || []);
     showNextAchievement();
   }
@@ -103,14 +112,14 @@
     window.MapRenderer.renderNode(roots.node, nodeId, function () {
       showTab("map");
     }, function (payload) {
-      startQuiz(payload.nodeId, payload.tier, payload.branchId);
+      startQuiz(payload.nodeId, payload.tier, payload.branchId, payload.options);
     });
   }
 
-  function startQuiz(nodeId, tier, branchId) {
+  function startQuiz(nodeId, tier, branchId, options) {
     showScreen("quiz");
     setActiveTab("");
-    var ok = window.QuizEngine.start(roots.quiz, nodeId, tier, branchId);
+    var ok = window.QuizEngine.start(roots.quiz, nodeId, tier, branchId, options);
     if (!ok) openNode(nodeId);
   }
 
@@ -128,6 +137,16 @@
       syncSettings();
       showScreen("settings");
     }
+    if (tabName === "inventory" || tabName === "notebook") {
+      window.InventoryRenderer[tabName === "inventory" ? "render" : "notebook"](roots[tabName]);
+      showScreen(tabName);
+    }
+  }
+
+  function resumeQuiz() {
+    showScreen("quiz");
+    if (window.QuizEngine.resume(roots.quiz)) { setActiveTab(""); }
+    else showTab("map");
   }
 
   function openReport() {
@@ -140,6 +159,9 @@
     var save = window.SaveManager.data();
     $("#setting-ruby").checked = !!save.settings.ruby;
     $("#setting-sound").checked = !!save.settings.sound;
+    $("#setting-reduce-motion").checked = !save.settings.motion;
+    document.body.classList.toggle("reduce-motion", !save.settings.motion);
+    $("#save-status").textContent = window.SaveManager.status().warning;
   }
 
   function wireTabs() {
@@ -165,9 +187,25 @@
       window.SaveManager.save(save);
     });
     $("#open-report-btn").addEventListener("click", openReport);
+    $("#setting-reduce-motion").addEventListener("change", function (e) { window.SaveManager.data().settings.motion = !e.target.checked; window.SaveManager.save(); syncSettings(); });
+    $("#export-save-btn").addEventListener("click", function () {
+      var url = URL.createObjectURL(new Blob([window.SaveManager.exportJSON()], { type: "application/json" }));
+      var a = document.createElement("a"); a.href = url; a.download = "social-learning-save.json"; a.click(); window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    });
+    $("#import-save-file").addEventListener("change", async function (e) {
+      var file = e.target.files[0]; if (!file) return;
+      try {
+        if (file.size > 5000000) throw new Error("セーブのファイルが大きすぎます。");
+        var raw = await file.text();
+        if (!confirm("現在の学習記録を、選んだファイルで置き換えますか？")) return;
+        window.SaveManager.importJSON(raw); syncSettings(); showTab("map"); toast("学習記録を読み込みました");
+      } catch (err) { toast(err.message); }
+      finally { e.target.value = ""; }
+    });
     $("#reset-save-btn").addEventListener("click", function () {
       if (!confirm("セーブデータを初期化しますか？")) return;
       window.SaveManager.reset();
+      syncSettings();
       renderMap();
       window.CollectionRenderer.render(roots.collection);
       toast("セーブを初期化しました");
@@ -176,7 +214,7 @@
   }
 
   function init() {
-    roots = { map: $("#map-root"), node: $("#node-root"), quiz: $("#quiz-root"), collection: $("#collection-root"), report: $("#report-root") };
+    roots = { map: $("#map-root"), node: $("#node-root"), quiz: $("#quiz-root"), collection: $("#collection-root"), report: $("#report-root"), inventory: $("#inventory-root"), notebook: $("#notebook-root") };
     window.SaveManager.load();
     if (window.AchievementManager) window.AchievementManager.checkAchievements(false);
     updateHud();
@@ -184,6 +222,8 @@
     wireSettings();
     renderMap();
     syncSettings();
+    if (window.SaveManager.status().warning) toast(window.SaveManager.status().warning);
+    window.addEventListener("shakai:save-error", function (e) { $("#save-status").textContent = e.detail; });
     window.addEventListener("shakai:save", function () {
       updateHud();
       if ($("#screen-collection").classList.contains("active")) window.CollectionRenderer.render(roots.collection);
@@ -194,6 +234,6 @@
     });
   }
 
-  window.ShakaiApp = { toast: toast, showTab: showTab, openNode: openNode, startQuiz: startQuiz, openReport: openReport };
+  window.ShakaiApp = { toast: toast, showTab: showTab, openNode: openNode, startQuiz: startQuiz, resumeQuiz: resumeQuiz, openReport: openReport };
   document.addEventListener("DOMContentLoaded", init);
 }());

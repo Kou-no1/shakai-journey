@@ -31,7 +31,7 @@
   }
 
   function lineRows(save) {
-    return (window.LINES_DATA || []).map(function (line) {
+    return (window.LINES_DATA || []).slice().sort(function (a, b) { return a.grade - b.grade || a.order - b.order; }).map(function (line) {
       var ids = nodesForLine(line.lineId);
       var clear = basicClearCount(save, ids);
       var percent = ids.length ? Math.round((clear / ids.length) * 100) : 0;
@@ -64,6 +64,26 @@
     }).join("") + '</ul>';
   }
 
+  function skillRows(save) {
+    var grouped = {};
+    Object.keys(window.SocialQuestions.skills).forEach(function (key) { grouped[key] = { correct: 0, total: 0 }; });
+    Object.keys(window.NODES_DATA).forEach(function (id) {
+      var node = window.NODES_DATA[id], branches = node.branch ? node.branch.options.map(function (b) { return b.branchId; }) : [null];
+      branches.forEach(function (branch) {
+        ["basic", "advanced", "extra"].forEach(function (tier) {
+          window.SocialQuestions.bank(id, branch, tier).forEach(function (q) {
+            var stats = save.questionStats[q.id]; if (!stats) return;
+            grouped[q.skill].correct += stats.correct || 0; grouped[q.skill].total += stats.attempts || 0;
+          });
+        });
+      });
+    });
+    return '<div class="skill-summary">' + Object.keys(grouped).map(function (key) {
+      var s = grouped[key];
+      return '<span>' + esc(window.SocialQuestions.skills[key]) + '<strong>' + (s.total ? Math.round(100 * s.correct / s.total) + '% / ' + s.total + '回答' : '記録なし') + '</strong></span>';
+    }).join("") + '</div>';
+  }
+
   function render(root, onBack) {
     var save = window.SaveManager.data();
     var allIds = Object.keys(window.NODES_DATA || {});
@@ -80,6 +100,8 @@
       '<div class="overall-report-track"><div class="overall-report-fill" style="width:', overall, '%"></div></div>',
       '</div>',
       '<section class="report-block"><h3>ライン別の進み具合</h3><div class="line-report-list">', lineRows(save), '</div></section>',
+      '<section class="report-block"><h3>技能別の記録（学び直しを含む）</h3>', skillRows(save), '</section>',
+      '<p class="report-note">3・4年は全国共通編です。地域の具体的な教材は対象地域の設定後に追加します。</p>',
       '<section class="report-block report-weak"><h3>もう一度挑戦してみるとよさそうな駅</h3>', weakList(save), '</section>',
       '<div class="report-footer"><span>最終プレイ</span><strong>', esc(formatDate(save.meta && save.meta.lastPlayedAt)), '</strong></div>',
       '<div class="report-actions no-print">',

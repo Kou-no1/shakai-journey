@@ -389,19 +389,37 @@
       case "s6_rek12": return '<path d="M64 16 95 76H33L64 16Z"/><path d="M47 48h34M41 61h46M56 34h16M118 74h42M130 52h18"/>';
       case "s6_kok01": return '<circle cx="62" cy="50" r="25"/><path d="M37 50h50M62 25c10 11 10 39 0 50M62 25c-10 11-10 39 0 50M118 73V28M118 31c19-10 31 9 53 0v30c-22 10-34-10-53 0"/>';
       case "s6_kok02": return '<circle cx="66" cy="48" r="25"/><path d="M41 48h50M66 23v50M118 34h42M118 54h42M118 74h42M139 22v60"/>';
-      default: return "";
+      default:
+        var node = window.NODES_DATA[nodeId];
+        if (!node || !node.motif) return "";
+        var marks = {
+          map: '<path d="m38 30 30-8 30 8 28-8v46l-28 8-30-8-30 8Z"/>',
+          town: '<path d="m38 43 23-18 23 18v31H38Zm59 3 23-18 23 18v28H97Z"/>',
+          factory: '<path d="M37 74V44l23 13V44l23 13V27h20v47Z"/>',
+          shop: '<path d="M42 38h82l8 17H34l8-17Zm0 17v20h82V55"/>',
+          fire: '<path d="M50 73V47h65v26ZM45 47h76M80 23v24"/>',
+          shield: '<path d="m60 30 24-10 24 10v23q-2 17-24 25-22-8-24-25Z"/>',
+          clock: '<circle cx="85" cy="47" r="27"/><path d="M85 29v18l17 10"/>',
+          water: '<path d="M72 22q-39 41 0 53 39-12 0-53ZM116 38v36h43"/>',
+          recycle: '<path d="m67 32 17-12 20 22m-3-7 17 18-2 24m0-6-31 9-25-13m5 1-12-25 16-15"/>',
+          festival: '<path d="M43 35h87M53 35v39m67-39v39M43 74h87"/>',
+          craft: '<path d="m55 25 58 48m-64 0 64-48m-10-6 17 18"/>',
+          globe: '<circle cx="85" cy="47" r="27"/><path d="M58 47h54m-27-27q20 27 0 54-20-27 0-54Z"/>'
+        };
+        return marks[node.motif] || marks.map;
     }
   }
 
   function stationBackground(nodeId) {
     var node = window.NODES_DATA && window.NODES_DATA[nodeId];
-    var color = node ? LINE_COLOR[node.lineId] || "var(--stamp)" : "var(--stamp)";
+    var line = node && window.LINES_DATA.find(function (l) { return l.lineId === node.lineId; });
+    var color = node ? LINE_COLOR[node.lineId] || (line && line.color) || "var(--stamp)" : "var(--stamp)";
     var inner = scene(nodeId);
     if (!inner) return "";
     var muted = nodeId === "s6_rek11";
     if (muted) color = "var(--ink-faint)";
     return [
-      '<svg class="station-bg" viewBox="0 0 200 100" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">',
+      '<svg class="station-bg" viewBox="0 0 200 100" preserveAspectRatio="xMaxYMax meet" aria-hidden="true" focusable="false">',
       '<g style="color:', color, '" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="', muted ? '.42' : '.56', '">',
       '<path d="M0 82c45-18 82-8 120-14 34-6 56 1 80 10v22H0V82Z" fill="currentColor" stroke="none" opacity="', muted ? '.10' : '.14', '"/>',
       inner,

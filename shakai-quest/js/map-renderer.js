@@ -89,8 +89,26 @@
   }
 
   function renderMap(root, onNodeSelect) {
-    var lines = (window.LINES_DATA || []).slice().sort(function (a, b) { return a.order - b.order; });
-    root.innerHTML = '<div class="map-stack">' + lines.map(renderLine).join("") + '</div>';
+    var save = window.SaveManager.data(), grade = save.settings.lastGrade;
+    var lines = (window.LINES_DATA || []).filter(function (l) { return l.grade === grade; }).sort(function (a, b) { return a.order - b.order; });
+    root.innerHTML = '<div class="grade-tabs" role="tablist" aria-label="学年">' + [3, 4, 5, 6].map(function (g) {
+      return '<button type="button" role="tab" data-grade="' + g + '" aria-selected="' + (g === grade) + '" tabindex="' + (g === grade ? 0 : -1) + '">' + g + '年</button>';
+    }).join("") + '</div>' +
+      (grade < 5 ? '<p class="region-scope">全国共通編 / 対象地域：未設定</p>' : '') +
+      (save.activeSession ? '<button class="resume-button primary-button" data-resume>途中の冒険を再開</button>' : '') +
+      '<div class="map-stack">' + lines.map(renderLine).join("") + '</div>';
+    root.querySelectorAll("[data-grade]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var selected = Number(b.dataset.grade); save.settings.lastGrade = selected; window.SaveManager.save(); renderMap(root, onNodeSelect);
+        root.querySelector('[data-grade="' + selected + '"]').focus({ preventScroll: true });
+      });
+      b.addEventListener("keydown", function (e) {
+        if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+        e.preventDefault(); var g = e.key === "Home" ? 3 : e.key === "End" ? 6 : 3 + ((grade - 3 + (e.key === "ArrowRight" ? 1 : 3)) % 4);
+        save.settings.lastGrade = g; window.SaveManager.save(); renderMap(root, onNodeSelect); root.querySelector('[data-grade="' + g + '"]').focus();
+      });
+    });
+    var resume = root.querySelector("[data-resume]"); if (resume) resume.addEventListener("click", window.ShakaiApp.resumeQuiz);
     root.querySelectorAll(".station-button.playable").forEach(function (button) {
       button.addEventListener("click", function () { onNodeSelect(button.dataset.nodeId); });
     });
@@ -104,7 +122,7 @@
     var basicIds = node.meibutsuIds || [];
     var branchOption = getBranchOption(node, progress.branchChosen);
     if (branchOption) basicIds = branchOption.meibutsuIds || [];
-    var basicReward = basicIds.length ? rewardName("meibutsu", basicIds[0]) : "ルート選択後に決定";
+    var basicReward = basicIds.length ? rewardName("meibutsu", basicIds[0]) : "学習記録・EXP・たびのかけら";
     var advancedReward = "認定カード";
     if (node.challengeStyle === "kikitori") advancedReward = "聞き取り記録";
     else if (node.ijinId) advancedReward = rewardName("ijin", node.ijinId);
@@ -114,7 +132,7 @@
       '<aside class="node-panel reward-preview">',
       '<div class="reward-line"><div class="reward-icon">', window.ShakaiIcons.render("globe_badge", "名産品"), '</div><div><strong>探検クリア</strong><br><span>', esc(basicReward), '</span></div></div>',
       '<div class="reward-line"><div class="reward-icon">', node.challengeStyle === "kikitori" ? window.ShakaiIcons.render("ration_ticket", "資料") : window.ShakaiIcons.render("ijin", "カード"), '</div><div><strong>', node.challengeStyle === "kikitori" ? '聞き取り完了' : '認定クリア', '</strong><br><span>', esc(advancedReward), '</span></div></div>',
-      '<div class="reward-line"><div class="reward-icon">', window.ShakaiIcons.render("item", "実用アイテム"), '</div><div><strong>もっと知りたい！</strong><br><span>全問正解でレアアイテム抽選</span></div></div>',
+      '<div class="reward-line"><div class="reward-icon">', window.ShakaiIcons.render("item", "実用アイテム"), '</div><div><strong>おまけ</strong><br><span>15問の初回全問正解で単元専用★レア</span></div></div>',
       '</aside>'
     ].join("");
   }
@@ -160,24 +178,34 @@
     }
     var branchOption = getBranchOption(node, progress.branchChosen);
     var branchId = branchOption ? branchOption.branchId : null;
+    progress = window.SaveManager.routeProgress(nodeId, branchId);
     var advancedLabel = node.challengeStyle === "kikitori" ? "聞き取りチャレンジ" : "認定チャレンジ";
-    var advancedNote = node.challengeStyle === "kikitori" ? "証言・資料を淡々と読み解きます。偉人カードは出ません。" : "案内人または偉人から朱色のはんこをもらいます。";
+    var advancedNote = node.challengeStyle === "kikitori" ? "証言・資料を読み解く" : "学びを確かめて認定を受ける";
     var tierHtml = [
-      tierButton(node, progress, "basic", "探検", "小単元の基本を確認します。", hasTierQuestions(nodeId, "basic", branchId)),
+      tierButton(node, progress, "basic", node.challengeStyle === "kikitori" ? "資料の探究" : "洞窟・基本", "基本の問題に挑戦", hasTierQuestions(nodeId, "basic", branchId)),
       tierButton(node, progress, "advanced", advancedLabel, advancedNote, progress.basicClear && hasTierQuestions(nodeId, "advanced", branchId)),
-      tierButton(node, progress, "extra", "もっと知りたい！", "全問正解でレアアイテム抽選。発展内容を含みます。", progress.advancedClear && hasTierQuestions(nodeId, "extra", branchId))
+      tierButton(node, progress, "extra", node.challengeStyle === "kikitori" ? "関連する資料" : "おまけ・先取り", "上の学年・中学・社会トリビア", progress.basicClear && hasTierQuestions(nodeId, "extra", branchId))
     ].join("");
     root.innerHTML = [
       '<div class="back-row"><button class="ghost-button" type="button" data-action="back">地図へ戻る</button></div>',
       '<div class="node-layout"><section class="node-panel"><p class="eyebrow">', esc(node.unitName), '</p>',
       '<h2 id="node-title">', esc(node.stationName), '</h2><p class="node-meta">', esc(node.subunitName), '</p>',
       branchOption ? '<p class="node-meta">選択中ルート: <strong>' + esc(branchOption.label) + '</strong></p>' : '',
-      '<div class="tier-grid">', tierHtml, '</div></section>', rewardPreview(node, progress), '</div>'
+      '<p class="mastery-line">基本の習得 ', progress.masteredQuestionIds.length, ' / ', window.SocialQuestions.bank(nodeId, branchId, "basic").length, ' 問</p>',
+      '<fieldset class="course-controls"><legend>冒険のコース</legend><label>モード<select id="course-mode"><option value="learn">学び直し</option><option value="challenge">RPG挑戦</option></select></label><label>基本の問題数<select id="course-limit"><option value="all">全問</option><option value="5">5問</option><option value="10">10問</option></select></label></fieldset>',
+      '<div class="tier-grid">', tierHtml, '</div>',
+      '<button class="ghost-button" data-review>間違えた問題を学び直す</button>',
+      node.branch ? '<button class="ghost-button" data-switch-branch>もう一つのルートへ</button>' : '',
+      '</section>', rewardPreview(node, window.SaveManager.getNodeProgress(nodeId)), '</div>'
     ].join("");
     root.querySelector('[data-action="back"]').addEventListener("click", onBack);
     root.querySelectorAll(".tier-button:not(:disabled)").forEach(function (button) {
-      button.addEventListener("click", function () { onStart({ nodeId: nodeId, tier: button.dataset.tier, branchId: branchId }); });
+      button.addEventListener("click", function () { onStart({ nodeId: nodeId, tier: button.dataset.tier, branchId: branchId,
+        options: { mode: root.querySelector("#course-mode").value, limit: root.querySelector("#course-limit").value } }); });
     });
+    root.querySelector("[data-review]").addEventListener("click", function () { onStart({ nodeId: nodeId, tier: "basic", branchId: branchId, options: { review: true, mode: "learn" } }); });
+    var switchBranch = root.querySelector("[data-switch-branch]");
+    if (switchBranch) switchBranch.addEventListener("click", function () { renderBranchPicker(node, root, onBack, onStart); });
   }
 
   window.MapRenderer = { renderMap: renderMap, renderNode: renderNode, bankFor: bankFor, hasTierQuestions: hasTierQuestions, getBranchOption: getBranchOption, nodesForLine: nodesForLine };

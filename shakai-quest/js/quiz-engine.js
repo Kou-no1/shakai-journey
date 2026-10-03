@@ -1,239 +1,221 @@
 (function () {
   "use strict";
-
-  var esc = window.ShakaiUtil.esc;
-  var state = null;
-
-  function toast(message) {
-    if (window.ShakaiApp && window.ShakaiApp.toast) window.ShakaiApp.toast(message);
-  }
-
-  function playTone(ok) {
-    var save = window.SaveManager.data();
-    if (!save.settings.sound || (!window.AudioContext && !window.webkitAudioContext)) return;
-    if (navigator.userActivation && !navigator.userActivation.isActive) return;
+  var state = null, root = null, audioContext = null;
+  function sound(correct) {
+    if (!window.SaveManager.data().settings.sound || window.NODES_DATA[state.nodeId].challengeStyle === "kikitori") return;
     try {
-      var AudioCtx = window.AudioContext || window.webkitAudioContext;
-      var ctx = new AudioCtx();
-      var osc = ctx.createOscillator();
-      var gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = ok ? 660 : 220;
-      gain.gain.value = .04;
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + .11);
-      osc.addEventListener("ended", function () { ctx.close(); });
-    } catch (err) {
-      return;
+      var Audio = window.AudioContext || window.webkitAudioContext; if (!Audio) return;
+      audioContext = audioContext || new Audio();
+      audioContext.resume().catch(function () {});
+      var tone = audioContext.createOscillator(), gain = audioContext.createGain(), now = audioContext.currentTime;
+      tone.type = "sine"; tone.frequency.setValueAtTime(correct ? 660 : 220, now);
+      gain.gain.setValueAtTime(.04, now); gain.gain.exponentialRampToValueAtTime(.001, now + .16);
+      tone.connect(gain); gain.connect(audioContext.destination); tone.start(now); tone.stop(now + .17);
+    } catch (err) { /* Audio is optional when the browser does not allow playback. */ }
+  }
+  function toast(text) { if (window.ShakaiApp) window.ShakaiApp.toast(text); }
+  function getQuestions(id, tier, branch) { return window.SocialQuestions.bank(id, branch, tier); }
+  function plan(source, nodeId, tier, branch, options) {
+    var s = window.SaveManager.data();
+    if (options.review) source = source.filter(function (q) { return s.questionStats[q.id] && !s.questionStats[q.id].lastCorrect; });
+    if (!source.length) return [];
+    var limit = tier === "basic" && [5, 10].includes(Number(options.limit)) ? Number(options.limit) : source.length;
+    if (tier === "advanced") limit = Math.min(10, source.length);
+    if (tier === "basic" && limit < source.length && !options.review) {
+      var key = nodeId + ":" + (branch || "all");
+      var bag = (s.questionBags[key] || []).filter(function (id) { return source.some(function (q) { return q.id === id; }); });
+      if (!bag.length) bag = window.SocialQuestions.shuffle(source).map(function (q) { return q.id; });
+      var selected = bag.splice(0, limit); s.questionBags[key] = bag;
+      return selected.map(function (id) { return source.find(function (q) { return q.id === id; }); }).map(window.SocialQuestions.prepare);
     }
-  }
-
-  function playStamp(root) {
-    var stamp = root.querySelector(".hanko-stamp-anim");
-    var ring = root.querySelector(".impact-ring");
-    if (!stamp || !ring) return;
-    stamp.classList.remove("play");
-    ring.classList.remove("play");
-    void stamp.getBoundingClientRect();
-    stamp.classList.add("play");
-    window.setTimeout(function () {
-      ring.classList.add("play");
-    }, 90);
-  }
-
-  function getQuestions(nodeId, tier, branchId) {
-    var bank = window.MapRenderer.bankFor(nodeId, branchId);
-    return bank && Array.isArray(bank[tier]) ? bank[tier] : [];
-  }
-
-  function shuffledCopy(arr) {
-    var a = arr.slice();
-    for (var i = a.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      var tmp = a[i];
-      a[i] = a[j];
-      a[j] = tmp;
+    if (tier === "advanced") {
+      var groups = {};
+      window.SocialQuestions.shuffle(source).forEach(function (q) { (groups[q.subId] = groups[q.subId] || []).push(q); });
+      var out = [], keys = window.SocialQuestions.shuffle(Object.keys(groups));
+      while (out.length < limit) keys.forEach(function (k) { if (groups[k].length && out.length < limit) out.push(groups[k].pop()); });
+      return window.SocialQuestions.shuffle(out).map(window.SocialQuestions.prepare);
     }
-    return a;
+    return window.SocialQuestions.shuffle(source).slice(0, limit).map(window.SocialQuestions.prepare);
   }
-
-  function getCommonDrop(lineId, questionIndex) {
-    var pool = (window.KAKERA_COMMON_POOL && window.KAKERA_COMMON_POOL[lineId]) || [];
-    if (!pool.length || Math.random() >= .3) return null;
-    return pool[questionIndex % pool.length];
+  function persist() { window.SaveManager.data().activeSession = JSON.parse(JSON.stringify(state)); window.SaveManager.save(); }
+  function start(targetRoot, nodeId, tier, branchId, options) {
+    options = options || {}; root = targetRoot;
+    var s = window.SaveManager.data(), node = window.NODES_DATA[nodeId];
+    if (window.SaveManager.status().protected) { toast("元のセーブを保護中です。設定で書き出し・読み込みを確認してください。"); return false; }
+    if (!node || !["basic", "advanced", "extra"].includes(tier) || !window.SaveManager.isNodeUnlocked(nodeId)) return false;
+    var branch = node.branch && node.branch.options.find(function (b) { return b.branchId === branchId; });
+    if (node.branch && !branch) return false;
+    var p = window.SaveManager.routeProgress(nodeId, branchId);
+    if (tier !== "basic" && !p.basicClear) return false;
+    if (s.activeSession && !s.activeSession.finished && !options.replace) {
+      if (!window.confirm("途中の冒険を終了して、新しく始めますか？")) { resume(targetRoot); return true; }
+    }
+    var questions = plan(getQuestions(nodeId, tier, branchId), nodeId, tier, branchId, options);
+    if (!questions.length) { toast("学び直す問題はまだありません。"); return false; }
+    if (branchId) window.SaveManager.chooseBranch(nodeId, branchId);
+    var effects = window.SocialRPG.effects();
+    var mode = options.review || node.challengeStyle === "kikitori" || options.mode === "learn" || (tier === "basic" && options.mode !== "challenge") ? "learn" : "challenge";
+    var maxLives = 4 + (effects.hpUp || 0) + (tier === "basic" ? 0 : 1);
+    state = { id: Date.now().toString(36) + Math.random().toString(36).slice(2), nodeId: nodeId, tier: tier, branchId: branchId || null,
+      questions: questions, initialCount: questions.length, index: 0, firstCorrect: 0, pending: [], mode: mode, options: options, answered: false, selected: null,
+      lives: maxLives, maxLives: maxLives, effects: effects, blockLeft: effects.block || 0, reviveLeft: effects.reviveOnce || 0,
+      hintLeft: effects.hintFree || 0, comboKeepLeft: effects.comboKeep || 0, hiddenChoices: [], usedHint: false, streak: 0,
+      monsterId: window.SocialRPG.choose(nodeId, tier, options.monsterId), wave: 0, enemyHp: 1, enemyMax: 1, finished: false };
+    wave(); s.meta.lastPlayedAt = new Date().toISOString(); persist(); render(); return true;
   }
-
-  function ownedKey(type) {
-    return type === "item" ? "items" : type;
+  function wave() {
+    var count = state.tier === "basic" ? Math.min(5, state.initialCount - state.wave * 5) : state.initialCount;
+    state.enemyMax = state.mode === "challenge" ? Math.ceil(count * .8) : count;
+    state.enemyHp = state.enemyMax; window.SocialRPG.remember(state.monsterId, false);
   }
-
-  function grant(type, id, rewards) {
-    if (!id) return false;
-    var save = window.SaveManager.data();
-    var key = ownedKey(type);
-    if ((save.owned[key] || []).indexOf(id) !== -1) return false;
-    window.SaveManager.grantCollectible(type, id);
-    rewards.push(window.CollectionRenderer.getInfo(type, id).name);
-    return true;
+  function resume(targetRoot) {
+    root = targetRoot;
+    var stored = window.SaveManager.data().activeSession;
+    if (!stored) return false;
+    var source = window.NODES_DATA[stored.nodeId] && getQuestions(stored.nodeId, stored.tier, stored.branchId);
+    var valid = source && source.length && typeof stored.id === "string" && Array.isArray(stored.questions) && stored.questions.length &&
+      Number.isInteger(stored.index) && stored.index >= 0 && stored.index < stored.questions.length && ["learn", "challenge"].includes(stored.mode) &&
+      Array.isArray(stored.pending) && Array.isArray(stored.hiddenChoices) && stored.effects && stored.options &&
+      ["initialCount", "firstCorrect", "lives", "maxLives", "enemyHp", "enemyMax", "wave", "blockLeft", "reviveLeft", "hintLeft", "comboKeepLeft", "streak"].every(function (k) { return Number.isFinite(stored[k]) && stored[k] >= 0; }) &&
+      stored.initialCount > 0 && stored.initialCount <= source.length && stored.firstCorrect <= stored.initialCount && stored.lives <= stored.maxLives && stored.enemyHp <= stored.enemyMax &&
+      stored.questions.length >= stored.initialCount && new Set(stored.questions.slice(0, stored.initialCount).map(function (q) { return q && q.id; })).size === stored.initialCount &&
+      stored.questions.every(function (q, index) {
+        var original = q && source.find(function (x) { return x.id === q.id; });
+        return original && q.contentVersion === original.contentVersion && q.stem === original.stem && q.explanation === original.explanation &&
+          q.type === original.type && q.skill === original.skill && q.targetStage === original.targetStage && JSON.stringify(q.diagramData) === JSON.stringify(original.diagramData) &&
+          !!q.isRetry === (index >= stored.initialCount) &&
+          Array.isArray(q.choices) && q.choices.length === original.choices.length && Number.isInteger(q.answer) &&
+          JSON.stringify(q.choices.slice().sort()) === JSON.stringify(original.choices.slice().sort()) && q.choices[q.answer] === original.choices[original.answer];
+      }) && stored.pending.every(function (id) { return source.some(function (q) { return q.id === id; }); });
+    if (valid && stored.answered && !stored.finished) valid = Number.isInteger(stored.selected) && stored.selected >= 0 && stored.selected < stored.questions[stored.index].choices.length;
+    if (valid) valid = stored.hiddenChoices.every(function (i) { return Number.isInteger(i) && i >= 0 && i < stored.questions[stored.index].choices.length && i !== stored.questions[stored.index].answer; });
+    if (valid && stored.finished) valid = stored.result && Array.isArray(stored.result.rewards) && typeof stored.result.success === "boolean";
+    if (!valid) {
+      window.SaveManager.data().meta.archivedSession = { archivedAt: new Date().toISOString(), session: stored };
+      window.SaveManager.data().activeSession = null; window.SaveManager.save();
+      toast("問題が更新されたため途中の冒険を終了しました。学習記録は残っています。"); return false;
+    }
+    state = stored; render(); return true;
   }
-
-  function firstMissing(type, ids) {
-    var save = window.SaveManager.data();
-    var owned = save.owned[ownedKey(type)] || [];
-    return (ids || []).find(function (id) { return owned.indexOf(id) === -1; }) || (ids || [])[0] || null;
-  }
-
-  function branchOption() {
-    var node = window.NODES_DATA[state.nodeId];
-    return state.branchId ? window.MapRenderer.getBranchOption(node, state.branchId) : null;
-  }
-
-  function completeTier(root) {
-    var node = window.NODES_DATA[state.nodeId];
-    var patch = {};
-    patch[state.tier + "Clear"] = true;
-    if (state.tier === "extra" && state.correct === state.questions.length) patch.extraPerfectClear = true;
-    window.SaveManager.setNodeProgress(state.nodeId, patch);
-    var rewards = [];
-    var branch = branchOption();
-
+  function current() { return state && state.questions[state.index]; }
+  function answer(targetRoot, selected) {
+    if (!state || state.answered || state.finished) return;
+    var q = current(); selected = Number(selected);
+    if (!Number.isInteger(selected) || selected < 0 || selected >= q.choices.length || state.hiddenChoices.includes(selected)) return;
+    root = targetRoot || root;
+    var ok = selected === q.answer, s = window.SaveManager.data(), p = window.SaveManager.routeProgress(state.nodeId, state.branchId);
+    state.answered = true; state.selected = selected;
+    var qs = s.questionStats[q.id] || { attempts: 0, correct: 0, hints: 0, reviews: 0 };
+    qs.attempts++; if (ok) qs.correct++; if (q.isRetry || state.options.review) qs.reviews++;
+    qs.lastCorrect = ok; qs.lastAttemptAt = new Date().toISOString(); qs.contentVersion = q.contentVersion; s.questionStats[q.id] = qs;
     if (state.tier === "basic") {
-      grant("meibutsu", firstMissing("meibutsu", branch ? branch.meibutsuIds : node.meibutsuIds), rewards);
+      if (!p.seenQuestionIds.includes(q.id)) p.seenQuestionIds.push(q.id);
+      if (ok && !p.masteredQuestionIds.includes(q.id)) p.masteredQuestionIds.push(q.id);
     }
-    if (state.tier === "advanced") {
-      if (node.challengeStyle === "kikitori") {
-        grant("meibutsu", firstMissing("meibutsu", node.meibutsuIds || []), rewards);
-      } else if (node.ijinId) {
-        grant("ijin", node.ijinId, rewards);
-      } else if (branch && branch.charaId) {
-        grant("chara", branch.charaId, rewards);
-      } else if (node.charaId) {
-        grant("chara", node.charaId, rewards);
-      } else if (state.nodeId === "s6_rek12") {
-        grant("meibutsu", "m_tokyo_tower", rewards);
-        grant("chara", "c_kenpoukun", rewards);
+    if (!q.isRetry) {
+      var st = p[state.tier + "Stats"]; st.total++; if (ok) st.correct++; st.lastAttemptAt = qs.lastAttemptAt;
+      if (state.branchId) { var globalStats = s.progress[state.nodeId][state.tier + "Stats"]; globalStats.total++; if (ok) globalStats.correct++; globalStats.lastAttemptAt = qs.lastAttemptAt; }
+      if (ok) state.firstCorrect++;
+      if (!state.options.review) {
+        s.owned.kakeraCount++; toast("+1 たびのかけら");
+        if (ok) {
+          s.player.exp += Math.round((10 + Math.min(state.streak, 5) * (state.effects.comboUp || 0)) * (1 + (state.effects.expRate || 0)));
+          var pool = window.KAKERA_COMMON_POOL[window.NODES_DATA[state.nodeId].lineId] || [];
+          if (pool.length && Math.random() < .3) { var drop = pool[Math.floor(Math.random() * pool.length)]; s.owned.commonItems[drop.id] = (s.owned.commonItems[drop.id] || 0) + 1; toast(drop.name + "を入手"); }
+        }
       }
     }
-    if (state.tier === "extra" && state.correct === state.questions.length) {
-      var nodeItems = Object.keys(window.ITEM_DATA || {}).filter(function (id) { return window.ITEM_DATA[id].nodeId === state.nodeId; });
-      var allItems = Object.keys(window.ITEM_DATA || {});
-      grant("item", firstMissing("item", nodeItems.length ? nodeItems : allItems), rewards);
-    }
-
-    renderResult(root, rewards);
-    if (window.AchievementManager) window.AchievementManager.checkAchievements(true);
-  }
-
-  function tierLabel(tier, node) {
-    if (tier === "basic") return "探検";
-    if (tier === "advanced") return node.challengeStyle === "kikitori" ? "聞き取りチャレンジ" : "認定チャレンジ";
-    return "もっと知りたい！";
-  }
-
-  function renderResult(root, rewards) {
-    var node = window.NODES_DATA[state.nodeId];
-    var isKikitori = state.tier === "advanced" && node.challengeStyle === "kikitori";
-    var title = state.tier === "basic" ? "探検完了" : isKikitori ? "聞き取り完了" : state.tier === "extra" ? (state.correct === state.questions.length ? "全問正解" : "チャレンジ完了") : "はんこを受け取りました";
-    var rewardHtml = rewards.length
-      ? rewards.map(function (name) { return '<div class="result-line">入手: <strong>' + esc(name) + '</strong></div>'; }).join("")
-      : '<div class="result-line">新しい節目報酬はありません。かけらとEXPは保存済みです。</div>';
-    root.innerHTML = [
-      '<section class="result-panel">',
-      window.ShakaiIcons.resultStamp(isKikitori ? "資料" : "朱印", isKikitori),
-      '<p class="eyebrow">', esc(node.stationName), '</p>',
-      '<h2>', esc(title), '</h2>',
-      '<p>正解 ', state.correct, ' / ', state.questions.length, ' 問</p>',
-      '<div class="result-list">', rewardHtml, '</div>',
-      '<div class="quiz-actions"><button class="ghost-button" type="button" data-action="node">駅へ戻る</button>',
-      '<button class="primary-button" type="button" data-action="collection">資料館を見る</button></div>',
-      '</section>'
-    ].join("");
-    root.querySelector('[data-action="node"]').addEventListener("click", function () { window.ShakaiApp.openNode(state.nodeId); });
-    root.querySelector('[data-action="collection"]').addEventListener("click", function () { window.ShakaiApp.showTab("collection"); });
-    playStamp(root);
-  }
-
-  function renderFeedback(root, ok, question) {
-    root.querySelector(".feedback-slot").innerHTML = '<div class="feedback ' + (ok ? 'good' : 'bad') + '"><strong>' + (ok ? '正解' : 'もう一歩') + '</strong><br>' + esc(question.explain || "") + '</div>';
-    root.querySelector(".quiz-actions").innerHTML = '<button class="primary-button" type="button" data-action="next">' + (state.index + 1 >= state.questions.length ? '結果を見る' : '次の問題') + '</button>';
-    root.querySelector('[data-action="next"]').addEventListener("click", function () {
-      state.index += 1;
-      if (state.index >= state.questions.length) completeTier(root);
-      else renderQuestion(root);
-    });
-  }
-
-  function answer(root, selected) {
-    if (state.answered) return;
-    state.answered = true;
-    var question = state.questions[state.index];
-    var ok = question.type === "ox" ? selected === question.answer : Number(selected) === Number(question.answer);
-    window.SaveManager.addKakera(1);
-    window.SaveManager.recordAnswer(state.nodeId, state.tier, ok);
-    toast("+1 たびのかけら");
     if (ok) {
-      state.correct += 1;
-      window.SaveManager.addExp(10);
-      var drop = getCommonDrop(window.NODES_DATA[state.nodeId].lineId, state.index);
-      if (drop) {
-        window.SaveManager.addCommonItem(drop.id);
-        toast("収蔵品: " + drop.name);
-      }
+      state.streak++;
+      var critChance = Math.min(.75, (.1 + (state.effects.critUp || 0)) * (state.effects.doubleCrit ? 2 : 1));
+      var damage = 1 + (Math.random() < critChance ? 1 : 0);
+      state.enemyHp = Math.max(0, state.enemyHp - damage);
+      if (state.enemyHp === 0) window.SocialRPG.remember(state.monsterId, true);
+    } else {
+      if (state.mode === "learn") state.pending.push(q.id);
+      else if (state.blockLeft > 0) state.blockLeft--;
+      else { state.lives--; if (state.lives === 0 && state.reviveLeft > 0) { state.reviveLeft--; state.lives = 1; } }
+      if (state.comboKeepLeft > 0) state.comboKeepLeft--; else state.streak = 0;
     }
-    playTone(ok);
-    root.querySelectorAll(".choice-button").forEach(function (button) {
-      button.disabled = true;
-      var value = button.dataset.value;
-      var isAnswer = question.type === "ox" ? value === String(question.answer) : Number(value) === Number(question.answer);
-      if (isAnswer) button.classList.add("correct");
-      if (value === String(selected) && !ok) button.classList.add("wrong");
-    });
-    renderFeedback(root, ok, question);
+    persist(); render(); sound(ok);
   }
-
-  function choiceButtons(question) {
-    if (question.type === "ox") return '<button class="choice-button" type="button" data-value="true">○ 正しい</button><button class="choice-button" type="button" data-value="false">× ちがう</button>';
-    return (question.choices || []).map(function (choice, index) {
-      return '<button class="choice-button" type="button" data-value="' + index + '">' + esc(choice) + '</button>';
-    }).join("");
+  function advance() {
+    if (!state || !state.answered || state.finished) return;
+    if (state.mode === "challenge" && state.lives === 0) return finish();
+    state.index++;
+    if (state.index >= state.questions.length) {
+      if (state.mode === "learn" && state.pending.length) {
+        state.pending.forEach(function (id) { var q = state.questions.find(function (x) { return x.id === id; }); state.questions.push(Object.assign({}, q, { isRetry: true })); });
+        state.pending = [];
+      } else { state.index--; return finish(); }
+    }
+    if (state.tier === "basic" && state.index < state.initialCount && state.index % 5 === 0) {
+      state.wave++; state.monsterId = window.SocialRPG.choose(state.nodeId, state.tier); wave();
+    }
+    state.answered = false; state.selected = null; state.hiddenChoices = []; persist(); render();
+    var first = root.querySelector(".choice-button:not(:disabled)"); if (first) first.focus({ preventScroll: true });
   }
-
-  function renderQuestion(root) {
-    state.answered = false;
+  function finish() { window.SocialRewards.complete(state); persist(); render(); if (window.AchievementManager) window.AchievementManager.checkAchievements(window.NODES_DATA[state.nodeId].challengeStyle !== "kikitori"); }
+  function useItem(id) {
+    if (!state || state.answered || state.finished) return;
+    var s = window.SaveManager.data(), q = current();
+    if (id === "potion") {
+      if (state.mode !== "challenge" || state.lives >= state.maxLives || s.owned.consumables.potion <= 0) return;
+      s.owned.consumables.potion--; state.lives = Math.min(state.maxLives, state.lives + 2);
+    } else if (id === "hint") {
+      if (q.type !== "mc4" || state.hiddenChoices.length || (state.hintLeft <= 0 && s.owned.consumables.hint <= 0)) return;
+      if (state.hintLeft > 0) state.hintLeft--; else s.owned.consumables.hint--;
+      state.hiddenChoices = window.SocialQuestions.shuffle(q.choices.map(function (_, i) { return i; }).filter(function (i) { return i !== q.answer; })).slice(0, 2);
+      state.usedHint = true; var qs = s.questionStats[q.id] || { attempts: 0, correct: 0, hints: 0, reviews: 0 }; qs.hints++; s.questionStats[q.id] = qs;
+    } else return;
+    persist(); render();
+  }
+  function label() {
     var node = window.NODES_DATA[state.nodeId];
-    var question = state.questions[state.index];
-    root.innerHTML = [
-      '<section class="quiz-panel">',
-      '<div class="quiz-progress"><span>', esc(tierLabel(state.tier, node)), '</span><span>', state.index + 1, ' / ', state.questions.length, '</span></div>',
-      '<p class="eyebrow">', esc(node.stationName), '</p><h2 id="quiz-title">問題</h2>',
-      '<p class="question-text">', esc(question.q), '</p>',
-      '<div class="choice-grid', question.type === "ox" ? ' ox' : '', '">', choiceButtons(question), '</div>',
-      '<div class="feedback-slot"></div>',
-      '<div class="quiz-actions"><button class="ghost-button" type="button" data-action="quit">駅へ戻る</button></div>',
-      '</section>'
-    ].join("");
-    root.querySelectorAll(".choice-button").forEach(function (button) {
-      button.addEventListener("click", function () {
-        var raw = button.dataset.value;
-        answer(root, raw === "true" ? true : raw === "false" ? false : Number(raw));
-      });
-    });
-    root.querySelector('[data-action="quit"]').addEventListener("click", function () { window.ShakaiApp.openNode(state.nodeId); });
+    if (node.challengeStyle === "kikitori") return state.tier === "basic" ? "資料の探究" : state.tier === "extra" ? "関連する資料" : "聞き取りチャレンジ";
+    return state.tier === "basic" ? "洞窟・基本" : state.tier === "extra" ? "おまけ・先取り" : "城・認定チャレンジ";
   }
-
-  function start(root, nodeId, tier, branchId) {
-    var questions = getQuestions(nodeId, tier, branchId);
-    if (!questions.length) {
-      toast("このチャレンジは近日公開です");
-      return false;
-    }
-    window.SaveManager.touchLastPlayed();
-    state = { nodeId: nodeId, tier: tier, branchId: branchId || null, questions: shuffledCopy(questions), index: 0, correct: 0, answered: false };
-    renderQuestion(root);
-    return true;
+  function diagram(q) {
+    if (!q.diagramData) return "";
+    var d = q.diagramData, esc = window.ShakaiUtil.esc;
+    var caption = d.fictional ? "学習用の架空データ" : (d.title || "資料") + " / 出典: " + (d.sourceName || d.source) + " / 基準年: " + d.referenceYear;
+    return '<figure class="question-data"><figcaption>' + esc(caption) + '</figcaption><table><thead><tr>' + d.headers.map(function (h) { return '<th scope="col">' + esc(h) + '</th>'; }).join("") + '</tr></thead><tbody>' + d.rows.map(function (r) { return '<tr>' + r.map(function (v) { return '<td>' + esc(v) + '</td>'; }).join("") + '</tr>'; }).join("") + '</tbody></table></figure>';
   }
-
-  window.QuizEngine = { start: start, getQuestions: getQuestions };
+  function render() {
+    if (state.finished) return renderResult();
+    var q = current(), esc = window.ShakaiUtil.esc, ruby = window.SocialQuestions.ruby;
+    var node = window.NODES_DATA[state.nodeId], somber = node.challengeStyle === "kikitori", monster = window.MONSTER_DATA[state.monsterId];
+    root.innerHTML = '<section class="rpg-quiz ' + (somber ? 'somber' : '') + '"><div class="quiz-progress"><strong>' + esc(label()) + '</strong><span>' + (q.isRetry ? '学び直し' : (state.index + 1) + ' / ' + state.initialCount) + '</span></div>' +
+      '<div class="battle-stage" data-battle-stage><span class="battle-mode">' + (state.mode === "learn" ? "学び直し" : "RPG挑戦") + '</span><div data-enemy-art>' + window.SocialRPG.art(state.monsterId) + '</div><strong>' + esc(monster ? monster.name : "聞き取り資料") + '</strong>' +
+      (somber ? '' : '<div class="enemy-hp"><span>HP ' + state.enemyHp + ' / ' + state.enemyMax + '</span><progress value="' + state.enemyHp + '" max="' + state.enemyMax + '" aria-label="挑戦相手のHP"></progress></div>') +
+      (state.mode === "challenge" ? '<div class="life-count">ライフ ' + state.lives + ' / ' + state.maxLives + '</div>' : '') + '</div>' +
+      '<div class="question-card"><p class="eyebrow">' + esc(node.stationName) + ' / ' + esc(window.SocialQuestions.skills[q.skill]) + '</p><h2 id="quiz-title" class="question-text">' + ruby(q.stem) + '</h2>' +
+      (state.tier === "extra" ? '<p class="stage-label">' + esc(q.targetStage === "middle_or_trivia" ? "中学・社会トリビア" : q.targetStage.replace("elementary", "小学") + "年の先取り") + '</p>' : '') + diagram(q) +
+      '<div class="choice-grid ' + (q.type === "ox" ? 'ox' : '') + '">' + q.choices.map(function (c, i) { return '<button class="choice-button ' + (state.answered && i === q.answer ? 'correct' : state.answered && i === state.selected ? 'wrong' : '') + '" type="button" data-value="' + i + '" ' + (state.answered || state.hiddenChoices.includes(i) ? 'disabled' : '') + '>' + (state.hiddenChoices.includes(i) ? 'ヒントで除外' : ruby(c)) + '</button>'; }).join("") + '</div>' +
+      (state.answered ? '<div class="feedback ' + (state.selected === q.answer ? 'good' : 'bad') + '" role="status"><strong>' + (state.selected === q.answer ? '✓ 正解' : '✗ 確かめよう') + '</strong><p>' + ruby(q.explanation) + '</p></div>' : '') +
+      '<div class="quiz-actions">' + (state.answered ? '<button class="primary-button" data-action="next">次へ</button>' : '<button class="ghost-button" data-item="hint" ' + (q.type !== "mc4" || state.hiddenChoices.length ? 'disabled' : '') + '>ヒント</button>' + (state.mode === "challenge" ? '<button class="ghost-button" data-item="potion">回復</button>' : '')) + '<button class="ghost-button" data-action="quit">中断して地図へ</button></div></div></section>';
+    root.querySelectorAll(".choice-button").forEach(function (b) { b.addEventListener("click", function () { answer(root, b.dataset.value); }); });
+    var next = root.querySelector('[data-action="next"]'); if (next) next.addEventListener("click", advance);
+    root.querySelectorAll("[data-item]").forEach(function (b) { b.addEventListener("click", function () { useItem(b.dataset.item); }); });
+    root.querySelector('[data-action="quit"]').addEventListener("click", function () { persist(); window.ShakaiApp.showTab("map"); });
+    var control = root.querySelector(state.answered ? '[data-action="next"]' : '.choice-button:not(:disabled)');
+    if (control) control.focus({ preventScroll: true });
+  }
+  function renderResult() {
+    var r = state.result, esc = window.ShakaiUtil.esc, node = window.NODES_DATA[state.nodeId];
+    var branch = node.branch && node.branch.options.find(function (b) { return b.branchId === state.branchId; });
+    var chara = window.CHARA_DATA[branch ? branch.charaId : node.charaId || (state.nodeId === "s6_rek12" ? "c_kenpoukun" : null)];
+    var person = window.IJIN_DATA[node.ijinId];
+    var guide = state.tier === "advanced" && r.success && node.challengeStyle !== "kikitori" && (person || chara);
+    var guideHTML = guide ? '<div class="result-guide">' + window.ShakaiIcons.render(guide.svgKey || (person ? node.ijinId : branch ? branch.charaId : node.charaId || "c_kenpoukun"), guide.name) + '<div><strong>' + esc(guide.name) + '</strong><p>' + esc(guide.achievement || guide.flavor) + '</p></div></div>' : '';
+    root.innerHTML = '<section class="result-panel"><h2 id="quiz-title">' + (r.success ? (node.challengeStyle === "kikitori" ? '資料学習完了' : r.completed ? 'クエスト完了' : 'コース完了') : 'もう一度確かめよう') + '</h2>' +
+      (r.completed ? window.ShakaiIcons.resultStamp(node.challengeStyle === "kikitori" ? "資料" : "探究", node.challengeStyle === "kikitori") : '') +
+      '<p>初回の正解 ' + r.firstCorrect + ' / ' + r.total + ' 問</p>' + (state.tier === "basic" ? '<p>基本の習得 ' + r.mastery + ' / ' + r.bankSize + ' 問</p>' : '') +
+      guideHTML + '<ul class="result-list">' + r.rewards.map(function (text) { return '<li>' + esc(text) + '</li>'; }).join("") + '</ul><div class="quiz-actions"><button class="primary-button" data-action="node">駅へ戻る</button><button class="ghost-button" data-action="collection">資料館へ</button></div></section>';
+    root.querySelector('[data-action="node"]').addEventListener("click", function () { window.SaveManager.data().activeSession = null; window.SaveManager.save(); window.ShakaiApp.openNode(state.nodeId); });
+    root.querySelector('[data-action="collection"]').addEventListener("click", function () { window.SaveManager.data().activeSession = null; window.SaveManager.save(); window.ShakaiApp.showTab("collection"); });
+    if (node.challengeStyle !== "kikitori") root.querySelectorAll(".hanko-stamp-anim,.impact-ring").forEach(function (el) { el.classList.add("play"); });
+  }
+  window.QuizEngine = { start: start, resume: resume, getQuestions: getQuestions, answer: answer, advance: advance, useItem: useItem,
+    getState: function () { return state; }, plan: plan, diagram: diagram };
 }());
