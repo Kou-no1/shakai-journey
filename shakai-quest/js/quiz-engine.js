@@ -14,7 +14,15 @@
     } catch (err) { /* Audio is optional when the browser does not allow playback. */ }
   }
   function toast(text) { if (window.ShakaiApp) window.ShakaiApp.toast(text); }
-  function getQuestions(id, tier, branch) { return window.SocialQuestions.bank(id, branch, tier); }
+  function getQuestions(id, tier, branch, options) {
+    if (options && options.middleCourse) {
+      var course = window.MiddleCourses.forNode(id);
+      return tier === "extra" && course && course.id === options.middleCourse ? course.questions.map(function (q, i) {
+        return window.SocialQuestions.normalize(q, id, tier, branch, i);
+      }) : [];
+    }
+    return window.SocialQuestions.bank(id, branch, tier);
+  }
   function plan(source, nodeId, tier, branch, options) {
     var s = window.SaveManager.data();
     if (options.review) source = source.filter(function (q) { return s.questionStats[q.id] && !s.questionStats[q.id].lastCorrect; });
@@ -50,7 +58,7 @@
     if (s.activeSession && !s.activeSession.finished && !options.replace) {
       if (!window.confirm("途中の冒険を終了して、新しく始めますか？")) { resume(targetRoot); return true; }
     }
-    var questions = plan(getQuestions(nodeId, tier, branchId), nodeId, tier, branchId, options);
+    var questions = plan(getQuestions(nodeId, tier, branchId, options), nodeId, tier, branchId, options);
     if (!questions.length) { toast("学び直す問題はまだありません。"); return false; }
     if (branchId) window.SaveManager.chooseBranch(nodeId, branchId);
     var effects = window.SocialRPG.effects();
@@ -72,7 +80,7 @@
     root = targetRoot;
     var stored = window.SaveManager.data().activeSession;
     if (!stored) return false;
-    var source = window.NODES_DATA[stored.nodeId] && getQuestions(stored.nodeId, stored.tier, stored.branchId);
+    var source = window.NODES_DATA[stored.nodeId] && getQuestions(stored.nodeId, stored.tier, stored.branchId, stored.options);
     var valid = source && source.length && typeof stored.id === "string" && Array.isArray(stored.questions) && stored.questions.length &&
       Number.isInteger(stored.index) && stored.index >= 0 && stored.index < stored.questions.length && ["learn", "challenge"].includes(stored.mode) &&
       Array.isArray(stored.pending) && Array.isArray(stored.hiddenChoices) && stored.effects && stored.options &&
@@ -113,8 +121,14 @@
       if (ok && !p.masteredQuestionIds.includes(q.id)) p.masteredQuestionIds.push(q.id);
     }
     if (!q.isRetry) {
-      var st = p[state.tier + "Stats"]; st.total++; if (ok) st.correct++; st.lastAttemptAt = qs.lastAttemptAt;
-      if (state.branchId) { var globalStats = s.progress[state.nodeId][state.tier + "Stats"]; globalStats.total++; if (ok) globalStats.correct++; globalStats.lastAttemptAt = qs.lastAttemptAt; }
+      if (state.options.middleCourse) {
+        var mp = window.SaveManager.getMiddleProgress(state.options.middleCourse);
+        if (!state.options.review) { mp.stats.total++; if (ok) mp.stats.correct++; mp.stats.lastAttemptAt = qs.lastAttemptAt; }
+        if (!mp.seenQuestionIds.includes(q.id)) mp.seenQuestionIds.push(q.id);
+      } else {
+        var st = p[state.tier + "Stats"]; st.total++; if (ok) st.correct++; st.lastAttemptAt = qs.lastAttemptAt;
+        if (state.branchId) { var globalStats = s.progress[state.nodeId][state.tier + "Stats"]; globalStats.total++; if (ok) globalStats.correct++; globalStats.lastAttemptAt = qs.lastAttemptAt; }
+      }
       if (ok) state.firstCorrect++;
       if (!state.options.review) {
         s.owned.kakeraCount++; toast("+1 たびのかけら");
@@ -124,6 +138,10 @@
           if (pool.length && Math.random() < .3) { var drop = pool[Math.floor(Math.random() * pool.length)]; s.owned.commonItems[drop.id] = (s.owned.commonItems[drop.id] || 0) + 1; toast(drop.name + "を入手"); }
         }
       }
+    }
+    if (state.options.middleCourse && ok) {
+      var middle = window.SaveManager.getMiddleProgress(state.options.middleCourse);
+      if (!middle.masteredQuestionIds.includes(q.id)) middle.masteredQuestionIds.push(q.id);
     }
     if (ok) {
       state.streak++;
@@ -171,6 +189,7 @@
     persist(); render();
   }
   function label() {
+    if (state.options.middleCourse) return "中学発展 / " + window.MIDDLE_COURSES[state.options.middleCourse].title;
     var node = window.NODES_DATA[state.nodeId];
     if (node.challengeStyle === "kikitori") return state.tier === "basic" ? "資料の探究" : state.tier === "extra" ? "関連する資料" : "聞き取りチャレンジ";
     return state.tier === "basic" ? "洞窟・基本" : state.tier === "extra" ? "おまけ・先取り" : "城・認定チャレンジ";
@@ -190,7 +209,7 @@
       (somber ? '' : '<div class="enemy-hp"><span>HP ' + state.enemyHp + ' / ' + state.enemyMax + '</span><progress value="' + state.enemyHp + '" max="' + state.enemyMax + '" aria-label="挑戦相手のHP"></progress></div>') +
       (state.mode === "challenge" ? '<div class="life-count">ライフ ' + state.lives + ' / ' + state.maxLives + '</div>' : '') + '</div>' +
       '<div class="question-card"><p class="eyebrow">' + esc(node.stationName) + ' / ' + esc(window.SocialQuestions.skills[q.skill]) + '</p><h2 id="quiz-title" class="question-text">' + ruby(q.stem) + '</h2>' +
-      (state.tier === "extra" ? '<p class="stage-label">' + esc(q.targetStage === "middle_or_trivia" ? "中学・社会トリビア" : q.targetStage.replace("elementary", "小学") + "年の先取り") + '</p>' : '') + diagram(q) +
+      (state.tier === "extra" ? '<p class="stage-label">' + esc(window.MiddleCourses.stageLabel(q.targetStage) || (q.targetStage === "middle_or_trivia" ? "中学・社会トリビア" : q.targetStage.replace("elementary", "小学") + "年の先取り")) + '</p>' : '') + diagram(q) +
       '<div class="choice-grid ' + (q.type === "ox" ? 'ox' : '') + '">' + q.choices.map(function (c, i) { return '<button class="choice-button ' + (state.answered && i === q.answer ? 'correct' : state.answered && i === state.selected ? 'wrong' : '') + '" type="button" data-value="' + i + '" ' + (state.answered || state.hiddenChoices.includes(i) ? 'disabled' : '') + '>' + (state.hiddenChoices.includes(i) ? 'ヒントで除外' : ruby(c)) + '</button>'; }).join("") + '</div>' +
       (state.answered ? '<div class="feedback ' + (state.selected === q.answer ? 'good' : 'bad') + '" role="status"><strong>' + (state.selected === q.answer ? '✓ 正解' : '✗ 確かめよう') + '</strong><p>' + ruby(q.explanation) + '</p></div>' : '') +
       '<div class="quiz-actions">' + (state.answered ? '<button class="primary-button" data-action="next">次へ</button>' : '<button class="ghost-button" data-item="hint" ' + (q.type !== "mc4" || state.hiddenChoices.length ? 'disabled' : '') + '>ヒント</button>' + (state.mode === "challenge" ? '<button class="ghost-button" data-item="potion">回復</button>' : '')) + '<button class="ghost-button" data-action="quit">中断して地図へ</button></div></div></section>';
@@ -208,9 +227,10 @@
     var person = window.IJIN_DATA[node.ijinId];
     var guide = state.tier === "advanced" && r.success && node.challengeStyle !== "kikitori" && (person || chara);
     var guideHTML = guide ? '<div class="result-guide">' + window.ShakaiIcons.render(guide.svgKey || (person ? node.ijinId : branch ? branch.charaId : node.charaId || "c_kenpoukun"), guide.name) + '<div><strong>' + esc(guide.name) + '</strong><p>' + esc(guide.achievement || guide.flavor) + '</p></div></div>' : '';
-    root.innerHTML = '<section class="result-panel"><h2 id="quiz-title">' + (r.success ? (node.challengeStyle === "kikitori" ? '資料学習完了' : r.completed ? 'クエスト完了' : 'コース完了') : 'もう一度確かめよう') + '</h2>' +
+    root.innerHTML = '<section class="result-panel"><h2 id="quiz-title">' + (r.success ? (state.options.middleCourse ? (state.options.review ? '中学発展の復習完了' : '中学発展コース完了') : node.challengeStyle === "kikitori" ? '資料学習完了' : r.completed ? 'クエスト完了' : 'コース完了') : 'もう一度確かめよう') + '</h2>' +
       (r.completed ? window.ShakaiIcons.resultStamp(node.challengeStyle === "kikitori" ? "資料" : "探究", node.challengeStyle === "kikitori") : '') +
       '<p>初回の正解 ' + r.firstCorrect + ' / ' + r.total + ' 問</p>' + (state.tier === "basic" ? '<p>基本の習得 ' + r.mastery + ' / ' + r.bankSize + ' 問</p>' : '') +
+      (state.options.middleCourse ? '<p>' + esc(window.MIDDLE_COURSES[state.options.middleCourse].title) + ' / ' + (state.options.review ? '復習記録を保存しました' : r.perfect ? '初回全問正解・ヒントなし' : '学習記録を保存しました') + '</p>' : '') +
       guideHTML + '<ul class="result-list">' + r.rewards.map(function (text) { return '<li>' + esc(text) + '</li>'; }).join("") + '</ul><div class="quiz-actions"><button class="primary-button" data-action="node">駅へ戻る</button><button class="ghost-button" data-action="collection">資料館へ</button></div></section>';
     root.querySelector('[data-action="node"]').addEventListener("click", function () { window.SaveManager.data().activeSession = null; window.SaveManager.save(); window.ShakaiApp.openNode(state.nodeId); });
     root.querySelector('[data-action="collection"]').addEventListener("click", function () { window.SaveManager.data().activeSession = null; window.SaveManager.save(); window.ShakaiApp.showTab("collection"); });

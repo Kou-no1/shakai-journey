@@ -78,10 +78,23 @@
         });
       });
     });
+    Object.keys(window.MIDDLE_COURSES).forEach(function (id) {
+      window.MiddleCourses.bank(id).forEach(function (q) {
+        var stats = save.questionStats[q.id]; if (!stats) return;
+        grouped[q.skill].correct += stats.correct || 0; grouped[q.skill].total += stats.attempts || 0;
+      });
+    });
     return '<div class="skill-summary">' + Object.keys(grouped).map(function (key) {
       var s = grouped[key];
       return '<span>' + esc(window.SocialQuestions.skills[key]) + '<strong>' + (s.total ? Math.round(100 * s.correct / s.total) + '% / ' + s.total + '回答' : '記録なし') + '</strong></span>';
     }).join("") + '</div>';
+  }
+
+  function middleRows(save) {
+    return '<table class="middle-report"><thead><tr><th scope="col">中学コース</th><th scope="col">習得</th><th scope="col">最高正解</th><th scope="col">完了</th></tr></thead><tbody>' + Object.keys(window.MIDDLE_COURSES).map(function (id) {
+      var course = window.MIDDLE_COURSES[id], p = save.middleProgress[id];
+      return '<tr><th scope="row">' + esc(course.title) + '</th><td>' + p.masteredQuestionIds.length + '/15</td><td>' + p.bestCorrect + '/15</td><td>' + (p.perfect ? '全問正解' : p.completed ? '完了' : '未完了') + '</td></tr>';
+    }).join("") + '</tbody></table>';
   }
 
   function render(root, onBack) {
@@ -101,6 +114,7 @@
       '</div>',
       '<section class="report-block"><h3>ライン別の進み具合</h3><div class="line-report-list">', lineRows(save), '</div></section>',
       '<section class="report-block"><h3>技能別の記録（学び直しを含む）</h3>', skillRows(save), '</section>',
+      '<section class="report-block"><h3>中学発展の記録</h3>', middleRows(save), '</section>',
       '<p class="report-note">3・4年は全国共通編です。地域の具体的な教材は対象地域の設定後に追加します。</p>',
       '<section class="report-block report-weak"><h3>もう一度挑戦してみるとよさそうな駅</h3>', weakList(save), '</section>',
       '<div class="report-footer"><span>最終プレイ</span><strong>', esc(formatDate(save.meta && save.meta.lastPlayedAt)), '</strong></div>',

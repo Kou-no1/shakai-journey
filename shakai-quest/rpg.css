@@ -82,6 +82,14 @@ rt { font-size: 10px; font-weight: 400; }
 .result-guide p { line-height: 1.8; margin-bottom: 0; }
 .report-panel { background: #fff; padding: 0; border: 0; border-radius: 0; }
 .result-panel { background: #fff; }
+.middle-tier { border-left: 4px solid var(--gold); }
+.middle-tier strong { color: #615011; }
+.quiz-progress { flex-wrap: wrap; gap: 8px; }
+.quiz-progress strong { min-width: 0; overflow-wrap: anywhere; }
+.middle-report { width: 100%; border-collapse: collapse; font-size: 13px; }
+.middle-report th, .middle-report td { padding: 10px 6px; border-bottom: 1px solid var(--paper-line); text-align: left; }
+.middle-report th:first-child { width: 45%; }
+.middle-report td { white-space: nowrap; }
 .overall-report { background: #eef4fb; }
 .report-weak { background: #f1f8fc; }
 .ghost-button { background: #f3f7fc; }

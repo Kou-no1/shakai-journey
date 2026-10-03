@@ -17,7 +17,17 @@
       var success = session.mode === "learn" ? session.pending.length === 0 : session.lives > 0 && accuracy >= .8;
       var perfect = success && session.firstCorrect === session.initialCount && !session.usedHint;
       var result = { success: success, perfect: perfect, mastery: mastery, bankSize: bank.length, firstCorrect: session.firstCorrect, total: session.initialCount, rewards: [], completed: false };
-      if (!session.options.review && success) {
+      // Middle-school enrichment never clears an elementary tier or grants its completion reward.
+      if (session.options.middleCourse && !session.options.review) {
+        var middle = window.SaveManager.getMiddleProgress(session.options.middleCourse);
+        middle.bestCorrect = Math.max(middle.bestCorrect, session.firstCorrect);
+        if (success) {
+          var alreadyComplete = middle.completed;
+          middle.completed = true; if (perfect) middle.perfect = true; result.completed = true;
+          var middleExp = alreadyComplete ? 20 : 80;
+          s.player.exp += middleExp; result.rewards.push(middleExp + " EXP");
+        }
+      } else if (!session.options.middleCourse && !session.options.review && success) {
         var wasCleared = p[session.tier + "Clear"], patch = {};
         if (session.tier !== "basic" || mastered) { patch[session.tier + "Clear"] = true; result.completed = true; }
         if (session.tier === "extra" && perfect && session.initialCount === 15) patch.extraPerfectClear = true;

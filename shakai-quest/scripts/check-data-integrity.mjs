@@ -40,6 +40,7 @@ run("js/svg-icons.js");
 run("js/question-model.js");
 run("data/questions/grades34.js");
 run("data/content-upgrades.js");
+run("data/middle-courses.js");
 run("data/rpg-data.js");
 
 const {
@@ -182,6 +183,25 @@ achievementIds.forEach((id) => {
   }
 });
 
+const middleCourses = Object.values(context.window.MIDDLE_COURSES);
+const middleIds = new Set();
+if (middleCourses.length !== 8) errors.push(`expected 8 middle courses, got ${middleCourses.length}`);
+middleCourses.forEach(course => {
+  if (!validLineId(course.id) || !course.title || !course.curriculumRefs) errors.push(`invalid middle course: ${course.id}`);
+  if (course.questions.length !== 15) errors.push(`middle course must have 15 questions: ${course.id}`);
+  course.questions.forEach(q => {
+    if (middleIds.has(q.id)) errors.push(`duplicate middle question: ${q.id}`);
+    middleIds.add(q.id);
+    if (q.tier !== "extra" || !["middle_geography", "middle_history", "middle_civics"].includes(q.targetStage)) errors.push(`middle stage mismatch: ${q.id}`);
+    if (!q.stem || !q.explanation || !q.subId || !q.curriculumRef || !q.curriculumSource || q.contentVersion !== 1 || !Array.isArray(q.factSources) || !q.factSources.length) errors.push(`missing middle metadata: ${q.id}`);
+    if (q.type !== "mc4" || q.choices.length !== 4 || new Set(q.choices).size !== 4 || !Number.isInteger(q.answer) || !q.choices[q.answer]) errors.push(`invalid middle question: ${q.id}`);
+    if (q.diagramData && (!q.diagramData.fictional || q.diagramData.rows.some(r => r.length !== q.diagramData.headers.length))) errors.push(`invalid middle data table: ${q.id}`);
+  });
+  if (course.questions.filter(q => q.diagramData).length < 2) errors.push(`too few middle tables: ${course.id}`);
+  if (new Set(course.questions.map(q => q.skill)).size < 4) errors.push(`too few middle skills: ${course.id}`);
+});
+if (middleIds.size !== 120) errors.push(`expected 120 middle questions, got ${middleIds.size}`);
+
 if (errors.length) {
   console.error(errors.join("\n"));
   process.exit(1);
@@ -199,5 +219,6 @@ console.log(JSON.stringify({
   stationBackgrounds: nodeIds.length,
   fictionalEncounters: Object.keys(context.window.MONSTER_DATA).length,
   companions: Object.keys(context.window.COMPANION_DATA).length,
-  equipment: Object.keys(context.window.EQUIPMENT_DATA).length
+  equipment: Object.keys(context.window.EQUIPMENT_DATA).length,
+  middleCourses: middleCourses.length, middleQuestions: middleIds.size
 }, null, 2));

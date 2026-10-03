@@ -4,12 +4,15 @@
   var currentData = null, protectedRaw = null, warning = "";
   function ids() { return Object.keys(window.NODES_DATA || {}); }
   function stats() { return { correct: 0, total: 0, lastAttemptAt: null }; }
+  function middleProgress() { return { completed: false, perfect: false, bestCorrect: 0, stats: stats(), seenQuestionIds: [], masteredQuestionIds: [] }; }
   function progress() {
     return { unlocked: false, basicClear: false, advancedClear: false, extraClear: false, extraPerfectClear: false,
       branchChosen: null, basicStats: stats(), advancedStats: stats(), extraStats: stats(), seenQuestionIds: [], masteredQuestionIds: [], branches: {} };
   }
   function getDefault() {
-    var p = {}; ids().forEach(function (id) {
+    var p = {}, middle = {};
+    Object.keys(window.MIDDLE_COURSES || {}).forEach(function (id) { middle[id] = middleProgress(); });
+    ids().forEach(function (id) {
       p[id] = progress();
       var node = window.NODES_DATA[id];
       p[id].unlocked = node.order === 1;
@@ -17,7 +20,7 @@
     });
     return { schema: SCHEMA, player: { name: "旅人", level: 1, exp: 0, title: "見習い探検者", equipped: { sword: null, shield: null, armor: null, gauntlet: null } },
       owned: { meibutsu: [], ijin: [], chara: [], companions: [], items: [], achievements: [], equipment: [], monsters: [], clearedMonsters: [], kakeraCount: 0, commonItems: {}, consumables: { potion: 2, hint: 1 } },
-      progress: p, questionStats: {}, questionBags: {}, encounterBags: {}, activeSession: null, activeCompanions: [], rewardedSessions: [],
+      progress: p, middleProgress: middle, questionStats: {}, questionBags: {}, encounterBags: {}, activeSession: null, activeCompanions: [], rewardedSessions: [],
       settings: { ruby: true, sound: false, motion: true, lastGrade: 5 }, meta: { lastPlayedAt: null } };
   }
   function number(value, fallback) { return Number.isFinite(Number(value)) && Number(value) >= 0 ? Math.floor(Number(value)) : fallback; }
@@ -53,6 +56,14 @@
     base.settings = Object.assign(base.settings, src.settings || {});
     base.settings.lastGrade = [3, 4, 5, 6].includes(Number(base.settings.lastGrade)) ? Number(base.settings.lastGrade) : 5;
     base.meta = Object.assign(base.meta, src.meta || {}); base.meta.lastPlayedAt = date(base.meta.lastPlayedAt);
+    Object.keys(window.MIDDLE_COURSES || {}).forEach(function (id) {
+      var old = object(src.middleProgress) && object(src.middleProgress[id]) ? src.middleProgress[id] : {};
+      var knownIds = window.MiddleCourses.bank(id).map(function (q) { return q.id; });
+      base.middleProgress[id] = { completed: old.completed === true, perfect: old.perfect === true,
+        bestCorrect: Math.min(knownIds.length, number(old.bestCorrect, 0)), stats: normalizeStats(old.stats),
+        seenQuestionIds: unique(old.seenQuestionIds).filter(function (q) { return knownIds.includes(q); }),
+        masteredQuestionIds: unique(old.masteredQuestionIds).filter(function (q) { return knownIds.includes(q); }) };
+    });
     ids().forEach(function (id) {
       var p = normalizeProgress(src.progress && src.progress[id]), node = window.NODES_DATA[id];
       if (node.branch) {
@@ -126,6 +137,7 @@
   }
   function getNodeProgress(id) { return data().progress[id]; }
   function routeProgress(id, branch) { var p = getNodeProgress(id); return branch && p.branches[branch] ? p.branches[branch] : p; }
+  function getMiddleProgress(id) { var s = data(); return s.middleProgress[id] = s.middleProgress[id] || middleProgress(); }
   function setNodeProgress(id, patch, branch) {
     var p = routeProgress(id, branch); Object.assign(p, patch);
     if (branch) ["basicClear", "advancedClear", "extraClear", "extraPerfectClear"].forEach(function (key) {
@@ -154,6 +166,7 @@
   window.SaveManager = {
     key: SAVE_KEY, schema: SCHEMA, load: load, save: save, data: data, getDefault: getDefault, transaction: transaction,
     getNodeProgress: getNodeProgress, routeProgress: routeProgress, setNodeProgress: setNodeProgress, chooseBranch: chooseBranch, isNodeUnlocked: isNodeUnlocked,
+    getMiddleProgress: getMiddleProgress,
     hasQuestionBank: function (id) { return !!window.QUESTION_BANK[id]; }, grantCollectible: grantCollectible, recordAnswer: recordAnswer,
     addKakera: function (n) { data().owned.kakeraCount += number(n, 0); return save(); },
     addExp: function (n) { data().player.exp += number(n, 0); return save(); },

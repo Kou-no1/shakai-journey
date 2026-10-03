@@ -52,13 +52,21 @@
         });
       }); });
     });
+    Object.keys(window.MIDDLE_COURSES).forEach(function (id) {
+      var entry = window.MiddleCourses.entryFor(id, s);
+      window.MiddleCourses.bank(id).forEach(function (q) {
+        var st = s.questionStats[q.id]; if (!st || !st.attempts) return;
+        var skill = skills[q.skill] || { total: 0, correct: 0 }; skill.total += st.attempts; skill.correct += st.correct; skills[q.skill] = skill;
+        rows.push({ q: q, st: st, nodeId: entry && entry.nodeId, branchId: entry && entry.branchId, tier: "extra", middleCourse: id });
+      });
+    });
     root.innerHTML = '<h2>学習ノート</h2><div class="skill-summary">' + Object.keys(window.SocialQuestions.skills).map(function (skill) {
       var st = skills[skill] || { total: 0, correct: 0 };
       return '<span>' + window.SocialQuestions.skills[skill] + ' <strong>' + (st.total ? Math.round(st.correct / st.total * 100) + '%' : '未記録') + '</strong></span>';
     }).join("") + '</div>' + (rows.length ? '' : '<p>まだ回答の記録がありません。</p>') + '<div class="notebook-list">' + rows.sort(function (a, b) { return Number(a.st.lastCorrect) - Number(b.st.lastCorrect); }).map(function (row, i) {
-      return '<article class="notebook-entry"><strong>' + (row.st.lastCorrect ? '✓' : '✗') + ' ' + window.SocialQuestions.ruby(row.q.stem) + '</strong><p>回答 ' + row.st.attempts + ' / 正解 ' + row.st.correct + ' / ヒント ' + row.st.hints + '</p><details><summary>解説</summary><p>' + window.SocialQuestions.ruby(row.q.explanation) + '</p></details><button class="ghost-button" data-review-node="' + i + '">この駅の誤答を学び直す</button></article>';
+      return '<article class="notebook-entry">' + (row.middleCourse ? '<p class="stage-label">' + esc(window.MiddleCourses.stageLabel(row.q.targetStage)) + '</p>' : '') + '<strong>' + (row.st.lastCorrect ? '✓' : '✗') + ' ' + window.SocialQuestions.ruby(row.q.stem) + '</strong><p>回答 ' + row.st.attempts + ' / 正解 ' + row.st.correct + ' / ヒント ' + row.st.hints + '</p><details><summary>解説</summary><p>' + window.SocialQuestions.ruby(row.q.explanation) + '</p></details><button class="ghost-button" data-review-node="' + i + '" ' + (row.nodeId ? '' : 'disabled') + '>' + (row.middleCourse ? 'この中学コースの誤答を学び直す' : 'この駅の誤答を学び直す') + '</button></article>';
     }).join("") + '</div>';
-    root.querySelectorAll("[data-review-node]").forEach(function (b) { b.addEventListener("click", function () { var row = rows[Number(b.dataset.reviewNode)]; window.ShakaiApp.startQuiz(row.nodeId, row.tier, row.branchId, { review: true, mode: "learn" }); }); });
+    root.querySelectorAll("[data-review-node]").forEach(function (b) { b.addEventListener("click", function () { var row = rows[Number(b.dataset.reviewNode)]; window.ShakaiApp.startQuiz(row.nodeId, row.tier, row.branchId, { review: true, mode: "learn", middleCourse: row.middleCourse || null }); }); });
   }
   window.InventoryRenderer = { render: render, notebook: notebook, gearArt: gearArt };
 }());

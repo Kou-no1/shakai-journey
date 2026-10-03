@@ -170,8 +170,65 @@ async function run() {
     await page.locator('[data-switch-branch]').click(); await page.locator('[data-branch-id="factory"]').click();
     assert.equal(await page.evaluate(() => SaveManager.data().progress.s3_work01.branchChosen), 'factory');
 
+    const elementaryBeforeMiddle = await page.evaluate(() => JSON.stringify(SaveManager.data().progress));
+    const gearBeforeMiddle = await page.evaluate(() => JSON.stringify(SaveManager.data().owned.equipment));
+    for (const [i, course] of ['s5_koku', 's5_shoku', 's5_kogyo', 's5_joho', 's5_kankyo', 's6_sei', 's6_rek', 's6_kok'].entries()) {
+      const nodeId = await page.evaluate(id => Object.keys(NODES_DATA).find(n => NODES_DATA[n].lineId === id && NODES_DATA[n].order === 1), course);
+      await page.evaluate(id => ShakaiApp.openNode(id), nodeId);
+      await page.locator('#course-mode').selectOption('learn');
+      await page.locator('[data-middle-course="' + course + '"]').click();
+      assert.equal(await page.evaluate(() => QuizEngine.getState().initialCount), 15);
+      assert.match(await page.locator('.stage-label').innerText(), /中学発展・(地理|歴史|公民)/);
+      const answer = await page.evaluate(() => QuizEngine.getState().questions[0].answer);
+      await page.locator('[data-value="' + (i === 0 ? (answer + 1) % 4 : answer) + '"]').click();
+      if (i === 0) {
+        const saved = await page.evaluate(() => JSON.stringify(QuizEngine.getState()));
+        await page.reload(); await page.locator('[data-resume]').click();
+        assert.equal(await page.evaluate(() => JSON.stringify(QuizEngine.getState())), saved);
+        assert.match(await page.locator('.feedback').innerText(), /✗/);
+      }
+      await page.locator('[data-action="next"]').click();
+      let count = 1;
+      while (!await page.evaluate(() => QuizEngine.getState().finished)) {
+        assert.ok(count++ < 20);
+        const correct = await page.evaluate(() => { const s = QuizEngine.getState(); return s.questions[s.index].answer; });
+        await page.locator('[data-value="' + correct + '"]').click(); await page.locator('[data-action="next"]').click();
+      }
+      assert.match(await page.locator('#quiz-title').innerText(), /中学発展コース完了/);
+      const record = await page.evaluate(id => SaveManager.data().middleProgress[id], course);
+      assert.equal(record.stats.total, 15); assert.equal(record.perfect, i !== 0); assert.equal(record.masteredQuestionIds.length, 15);
+      await page.screenshot({ path: path.join(out, 'middle-' + course + '-result.png'), fullPage: true });
+    }
+    assert.equal(await page.evaluate(() => JSON.stringify(SaveManager.data().progress)), elementaryBeforeMiddle);
+    assert.equal(await page.evaluate(() => JSON.stringify(SaveManager.data().owned.equipment)), gearBeforeMiddle);
+    await page.evaluate(() => ShakaiApp.showTab('notebook'));
+    assert.equal(await page.locator('.notebook-entry:has(.stage-label)').count(), 120);
+    await page.evaluate(() => ShakaiApp.openReport());
+    assert.equal(await page.locator('.middle-report tbody tr').count(), 8);
+    assert.match(await page.locator('.middle-report').innerText(), /14\/15/);
+    await page.emulateMedia({ media: 'print' });
+    assert.equal(await page.locator('.tabbar').isVisible(), false);
+    assert.equal(await page.locator('.middle-report').isVisible(), true);
+    await page.pdf({ path: path.join(out, 'middle-report.pdf'), format: 'A4' });
+    await page.emulateMedia({ media: 'screen' });
+
     for (const viewport of [{ width: 1280, height: 900 }, { width: 768, height: 1024 }, { width: 390, height: 844 }]) {
       await page.setViewportSize(viewport);
+      for (const [id, course] of [['s5_koku01', 's5_koku'], ['s6_sei01', 's6_sei'], ['s6_rek01', 's6_rek']]) {
+        await page.evaluate(id => ShakaiApp.openNode(id), id);
+        assert.ok(await page.locator('[data-middle-course]').evaluate(e => e.scrollWidth <= e.clientWidth + 1 && e.getBoundingClientRect().height >= 44));
+        await page.locator('[data-middle-course="' + course + '"]').click();
+        // Advance to a table through real answers; the bank and saved question order stay untouched.
+        while (!await page.locator('.question-data').count()) {
+          const a = await page.evaluate(() => { const s = QuizEngine.getState(); return s.questions[s.index].answer; });
+          await page.locator('[data-value="' + a + '"]').click(); await page.locator('[data-action="next"]').click();
+        }
+        assert.match(await page.locator('.question-data').innerText(), /学習用の架空データ/);
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), course + ' overflow/' + viewport.width);
+        assert.ok(await page.locator('.choice-button').evaluateAll(els => els.every(e => e.scrollWidth <= e.clientWidth + 1 && e.getBoundingClientRect().height >= 44)));
+        assert.equal(await page.locator('.mote:visible').count(), 0);
+        await page.screenshot({ path: path.join(out, 'middle-' + course + '-' + viewport.width + '.png'), fullPage: true });
+      }
       for (const id of ['s3_machi01', 's3_safe01', 's4_life01', 's4_area01', 's5_shoku01', 's6_rek01', 's6_rek11']) {
         await page.evaluate(id => ShakaiApp.startQuiz(id, 'basic', null, { replace: true, mode: 'challenge' }), id);
         const geometry = await page.locator('[data-enemy-art] svg').evaluate(e => {
@@ -238,7 +295,7 @@ async function run() {
     assert.equal(await protectedPage.evaluate(() => localStorage.getItem(SaveManager.key)), '{broken');
     await protectedPage.close();
     assert.deepEqual(errors, []); assert.deepEqual(external, []);
-    console.log('PASS browser: 3/4/5/6 maps, keyboard, resume, HP/lives, retries, rare rewards, equipment, companions, report print, responsive SVG pixels, ruby, reduced motion, war restraint, file://, no external requests');
+    console.log('PASS browser: 3/4/5/6 maps, eight middle courses / 120 questions, independent progress, middle resume and reports, keyboard, HP/lives, retries, rare rewards, equipment, companions, report print, responsive SVG pixels, ruby, reduced motion, war restraint, file://, no external requests');
     console.log('Screenshots: ' + out);
   } finally { if (browser) await browser.close(); await new Promise(resolve => server.close(resolve)); }
 }

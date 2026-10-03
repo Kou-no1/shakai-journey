@@ -186,6 +186,11 @@
       tierButton(node, progress, "advanced", advancedLabel, advancedNote, progress.basicClear && hasTierQuestions(nodeId, "advanced", branchId)),
       tierButton(node, progress, "extra", node.challengeStyle === "kikitori" ? "関連する資料" : "おまけ・先取り", "上の学年・中学・社会トリビア", progress.basicClear && hasTierQuestions(nodeId, "extra", branchId))
     ].join("");
+    var middleCourse = window.MiddleCourses.forNode(nodeId);
+    if (middleCourse) {
+      var middle = window.SaveManager.getMiddleProgress(middleCourse.id);
+      tierHtml += '<button class="tier-button middle-tier ' + (middle.completed ? 'clear' : '') + '" type="button" data-tier="extra" data-middle-course="' + middleCourse.id + '" ' + (progress.basicClear ? '' : 'disabled') + '><strong>中学発展</strong><span>' + esc(middleCourse.title) + '</span><span>15問 / 習得 ' + middle.masteredQuestionIds.length + '/15' + (middle.perfect ? ' / 全問正解済み' : middle.completed ? ' / 完了済み' : '') + '</span></button>';
+    }
     root.innerHTML = [
       '<div class="back-row"><button class="ghost-button" type="button" data-action="back">地図へ戻る</button></div>',
       '<div class="node-layout"><section class="node-panel"><p class="eyebrow">', esc(node.unitName), '</p>',
@@ -201,7 +206,7 @@
     root.querySelector('[data-action="back"]').addEventListener("click", onBack);
     root.querySelectorAll(".tier-button:not(:disabled)").forEach(function (button) {
       button.addEventListener("click", function () { onStart({ nodeId: nodeId, tier: button.dataset.tier, branchId: branchId,
-        options: { mode: root.querySelector("#course-mode").value, limit: root.querySelector("#course-limit").value } }); });
+        options: { mode: root.querySelector("#course-mode").value, limit: root.querySelector("#course-limit").value, middleCourse: button.dataset.middleCourse || null } }); });
     });
     root.querySelector("[data-review]").addEventListener("click", function () { onStart({ nodeId: nodeId, tier: "basic", branchId: branchId, options: { review: true, mode: "learn" } }); });
     var switchBranch = root.querySelector("[data-switch-branch]");
