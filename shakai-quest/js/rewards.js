@@ -19,7 +19,7 @@
       var result = { success: success, perfect: perfect, mastery: mastery, bankSize: bank.length, firstCorrect: session.firstCorrect, total: session.initialCount, rewards: [], completed: false };
       // Middle-school enrichment never clears an elementary tier or grants its completion reward.
       if (session.options.middleCourse && !session.options.review) {
-        var middle = window.SaveManager.getMiddleProgress(session.options.middleCourse);
+        var middle = window.SaveManager.getMiddleProgress(session.options.middleCourse, session.options.middleDifficulty);
         middle.bestCorrect = Math.max(middle.bestCorrect, session.firstCorrect);
         if (success) {
           var alreadyComplete = middle.completed;

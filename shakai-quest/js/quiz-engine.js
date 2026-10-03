@@ -17,7 +17,7 @@
   function getQuestions(id, tier, branch, options) {
     if (options && options.middleCourse) {
       var course = window.MiddleCourses.forNode(id);
-      return tier === "extra" && course && course.id === options.middleCourse ? course.questions.map(function (q, i) {
+      return tier === "extra" && course && course.id === options.middleCourse ? window.MiddleCourses.bank(course.id, options.middleDifficulty).map(function (q, i) {
         return window.SocialQuestions.normalize(q, id, tier, branch, i);
       }) : [];
     }
@@ -25,7 +25,10 @@
   }
   function plan(source, nodeId, tier, branch, options) {
     var s = window.SaveManager.data();
-    if (options.review) source = source.filter(function (q) { return s.questionStats[q.id] && !s.questionStats[q.id].lastCorrect; });
+    if (options.review) source = source.filter(function (q) {
+      var stats = s.questionStats[q.id];
+      return stats && !stats.lastCorrect && (!options.mistakeReason || stats.lastMistake === options.mistakeReason);
+    });
     if (!source.length) return [];
     var limit = tier === "basic" && [5, 10].includes(Number(options.limit)) ? Number(options.limit) : source.length;
     if (tier === "advanced") limit = Math.min(10, source.length);
@@ -91,9 +94,11 @@
         var original = q && source.find(function (x) { return x.id === q.id; });
         return original && q.contentVersion === original.contentVersion && q.stem === original.stem && q.explanation === original.explanation &&
           q.type === original.type && q.skill === original.skill && q.targetStage === original.targetStage && JSON.stringify(q.diagramData) === JSON.stringify(original.diagramData) &&
+          JSON.stringify(q.sourceMaterials) === JSON.stringify(original.sourceMaterials) && JSON.stringify(q.evidence) === JSON.stringify(original.evidence) && q.difficulty === original.difficulty &&
           !!q.isRetry === (index >= stored.initialCount) &&
           Array.isArray(q.choices) && q.choices.length === original.choices.length && Number.isInteger(q.answer) &&
-          JSON.stringify(q.choices.slice().sort()) === JSON.stringify(original.choices.slice().sort()) && q.choices[q.answer] === original.choices[original.answer];
+          JSON.stringify(q.choices.slice().sort()) === JSON.stringify(original.choices.slice().sort()) && q.choices[q.answer] === original.choices[original.answer] &&
+          (!original.choiceReasons ? !q.choiceReasons : Array.isArray(q.choiceReasons) && q.choiceReasons.length === original.choices.length && q.choices.every(function (c, i) { return q.choiceReasons[i] === original.choiceReasons[original.choices.indexOf(c)]; }));
       }) && stored.pending.every(function (id) { return source.some(function (q) { return q.id === id; }); });
     if (valid && stored.answered && !stored.finished) valid = Number.isInteger(stored.selected) && stored.selected >= 0 && stored.selected < stored.questions[stored.index].choices.length;
     if (valid) valid = stored.hiddenChoices.every(function (i) { return Number.isInteger(i) && i >= 0 && i < stored.questions[stored.index].choices.length && i !== stored.questions[stored.index].answer; });
@@ -116,13 +121,14 @@
     var qs = s.questionStats[q.id] || { attempts: 0, correct: 0, hints: 0, reviews: 0 };
     qs.attempts++; if (ok) qs.correct++; if (q.isRetry || state.options.review) qs.reviews++;
     qs.lastCorrect = ok; qs.lastAttemptAt = new Date().toISOString(); qs.contentVersion = q.contentVersion; s.questionStats[q.id] = qs;
+    qs.lastMistake = !ok && q.choiceReasons ? q.choiceReasons[selected] : null;
     if (state.tier === "basic") {
       if (!p.seenQuestionIds.includes(q.id)) p.seenQuestionIds.push(q.id);
       if (ok && !p.masteredQuestionIds.includes(q.id)) p.masteredQuestionIds.push(q.id);
     }
     if (!q.isRetry) {
       if (state.options.middleCourse) {
-        var mp = window.SaveManager.getMiddleProgress(state.options.middleCourse);
+        var mp = window.SaveManager.getMiddleProgress(state.options.middleCourse, state.options.middleDifficulty);
         if (!state.options.review) { mp.stats.total++; if (ok) mp.stats.correct++; mp.stats.lastAttemptAt = qs.lastAttemptAt; }
         if (!mp.seenQuestionIds.includes(q.id)) mp.seenQuestionIds.push(q.id);
       } else {
@@ -140,7 +146,7 @@
       }
     }
     if (state.options.middleCourse && ok) {
-      var middle = window.SaveManager.getMiddleProgress(state.options.middleCourse);
+      var middle = window.SaveManager.getMiddleProgress(state.options.middleCourse, state.options.middleDifficulty);
       if (!middle.masteredQuestionIds.includes(q.id)) middle.masteredQuestionIds.push(q.id);
     }
     if (ok) {
@@ -189,15 +195,19 @@
     persist(); render();
   }
   function label() {
-    if (state.options.middleCourse) return "中学発展 / " + window.MIDDLE_COURSES[state.options.middleCourse].title;
+    if (state.options.middleCourse) return "中学発展・" + window.MiddleCourses.difficulties[state.options.middleDifficulty || "standard"] + " / " + window.MIDDLE_COURSES[state.options.middleCourse].title;
     var node = window.NODES_DATA[state.nodeId];
     if (node.challengeStyle === "kikitori") return state.tier === "basic" ? "資料の探究" : state.tier === "extra" ? "関連する資料" : "聞き取りチャレンジ";
     return state.tier === "basic" ? "洞窟・基本" : state.tier === "extra" ? "おまけ・先取り" : "城・認定チャレンジ";
   }
   function diagram(q) {
+    if (q.sourceMaterials) return '<div class="source-materials">' + q.sourceMaterials.map(function (d) {
+      return diagram({ diagramData: d });
+    }).join("") + '</div>';
     if (!q.diagramData) return "";
     var d = q.diagramData, esc = window.ShakaiUtil.esc;
-    var caption = d.fictional ? "学習用の架空データ" : (d.title || "資料") + " / 出典: " + (d.sourceName || d.source) + " / 基準年: " + d.referenceYear;
+    var caption = d.fictional ? (d.title ? d.title + " / " : "") + "学習用の架空データ" : (d.title || "資料") + " / 出典: " + (d.sourceName || d.source) + " / 基準年: " + d.referenceYear;
+    if (d.kind === "text") return '<figure class="question-data"><figcaption>' + esc(caption) + '</figcaption><p>' + esc(d.text) + '</p></figure>';
     return '<figure class="question-data"><figcaption>' + esc(caption) + '</figcaption><table><thead><tr>' + d.headers.map(function (h) { return '<th scope="col">' + esc(h) + '</th>'; }).join("") + '</tr></thead><tbody>' + d.rows.map(function (r) { return '<tr>' + r.map(function (v) { return '<td>' + esc(v) + '</td>'; }).join("") + '</tr>'; }).join("") + '</tbody></table></figure>';
   }
   function render() {
@@ -211,7 +221,9 @@
       '<div class="question-card"><p class="eyebrow">' + esc(node.stationName) + ' / ' + esc(window.SocialQuestions.skills[q.skill]) + '</p><h2 id="quiz-title" class="question-text">' + ruby(q.stem) + '</h2>' +
       (state.tier === "extra" ? '<p class="stage-label">' + esc(window.MiddleCourses.stageLabel(q.targetStage) || (q.targetStage === "middle_or_trivia" ? "中学・社会トリビア" : q.targetStage.replace("elementary", "小学") + "年の先取り")) + '</p>' : '') + diagram(q) +
       '<div class="choice-grid ' + (q.type === "ox" ? 'ox' : '') + '">' + q.choices.map(function (c, i) { return '<button class="choice-button ' + (state.answered && i === q.answer ? 'correct' : state.answered && i === state.selected ? 'wrong' : '') + '" type="button" data-value="' + i + '" ' + (state.answered || state.hiddenChoices.includes(i) ? 'disabled' : '') + '>' + (state.hiddenChoices.includes(i) ? 'ヒントで除外' : ruby(c)) + '</button>'; }).join("") + '</div>' +
-      (state.answered ? '<div class="feedback ' + (state.selected === q.answer ? 'good' : 'bad') + '" role="status"><strong>' + (state.selected === q.answer ? '✓ 正解' : '✗ 確かめよう') + '</strong><p>' + ruby(q.explanation) + '</p></div>' : '') +
+      (state.answered ? '<div class="feedback ' + (state.selected === q.answer ? 'good' : 'bad') + '" role="status"><strong>' + (state.selected === q.answer ? '✓ 正解' : '✗ 確かめよう') + '</strong><p>' + ruby(q.explanation) + '</p>' +
+        (q.choiceReasons && state.selected !== q.answer ? '<p class="mistake-cue">着目点：' + esc(window.MiddleCourses.mistakeLabels[q.choiceReasons[state.selected]]) + '</p>' : '') +
+        (q.evidence ? '<details class="evidence-details" open><summary>根拠を照合</summary><ol>' + q.evidence.map(function (text) { return '<li>' + ruby(text) + '</li>'; }).join("") + '</ol></details>' : '') + '</div>' : '') +
       '<div class="quiz-actions">' + (state.answered ? '<button class="primary-button" data-action="next">次へ</button>' : '<button class="ghost-button" data-item="hint" ' + (q.type !== "mc4" || state.hiddenChoices.length ? 'disabled' : '') + '>ヒント</button>' + (state.mode === "challenge" ? '<button class="ghost-button" data-item="potion">回復</button>' : '')) + '<button class="ghost-button" data-action="quit">中断して地図へ</button></div></div></section>';
     root.querySelectorAll(".choice-button").forEach(function (b) { b.addEventListener("click", function () { answer(root, b.dataset.value); }); });
     var next = root.querySelector('[data-action="next"]'); if (next) next.addEventListener("click", advance);
@@ -230,7 +242,7 @@
     root.innerHTML = '<section class="result-panel"><h2 id="quiz-title">' + (r.success ? (state.options.middleCourse ? (state.options.review ? '中学発展の復習完了' : '中学発展コース完了') : node.challengeStyle === "kikitori" ? '資料学習完了' : r.completed ? 'クエスト完了' : 'コース完了') : 'もう一度確かめよう') + '</h2>' +
       (r.completed ? window.ShakaiIcons.resultStamp(node.challengeStyle === "kikitori" ? "資料" : "探究", node.challengeStyle === "kikitori") : '') +
       '<p>初回の正解 ' + r.firstCorrect + ' / ' + r.total + ' 問</p>' + (state.tier === "basic" ? '<p>基本の習得 ' + r.mastery + ' / ' + r.bankSize + ' 問</p>' : '') +
-      (state.options.middleCourse ? '<p>' + esc(window.MIDDLE_COURSES[state.options.middleCourse].title) + ' / ' + (state.options.review ? '復習記録を保存しました' : r.perfect ? '初回全問正解・ヒントなし' : '学習記録を保存しました') + '</p>' : '') +
+      (state.options.middleCourse ? '<p>' + esc(window.MIDDLE_COURSES[state.options.middleCourse].title) + ' / ' + esc(window.MiddleCourses.difficulties[state.options.middleDifficulty || "standard"]) + ' / ' + (state.options.review ? '復習記録を保存しました' : r.perfect ? '初回全問正解・ヒントなし' : '学習記録を保存しました') + '</p>' : '') +
       guideHTML + '<ul class="result-list">' + r.rewards.map(function (text) { return '<li>' + esc(text) + '</li>'; }).join("") + '</ul><div class="quiz-actions"><button class="primary-button" data-action="node">駅へ戻る</button><button class="ghost-button" data-action="collection">資料館へ</button></div></section>';
     root.querySelector('[data-action="node"]').addEventListener("click", function () { window.SaveManager.data().activeSession = null; window.SaveManager.save(); window.ShakaiApp.openNode(state.nodeId); });
     root.querySelector('[data-action="collection"]').addEventListener("click", function () { window.SaveManager.data().activeSession = null; window.SaveManager.save(); window.ShakaiApp.showTab("collection"); });

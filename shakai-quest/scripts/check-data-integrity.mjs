@@ -41,6 +41,7 @@ run("js/question-model.js");
 run("data/questions/grades34.js");
 run("data/content-upgrades.js");
 run("data/middle-courses.js");
+run("data/middle-challenges.js");
 run("data/rpg-data.js");
 
 const {
@@ -201,6 +202,30 @@ middleCourses.forEach(course => {
   if (new Set(course.questions.map(q => q.skill)).size < 4) errors.push(`too few middle skills: ${course.id}`);
 });
 if (middleIds.size !== 120) errors.push(`expected 120 middle questions, got ${middleIds.size}`);
+let challengeCount = 0;
+middleCourses.forEach(course => {
+  for (const difficulty of ["applied", "hard"]) {
+    const questions = context.window.MiddleCourses.bank(course.id, difficulty);
+    if (questions.length !== 6) errors.push(`expected six ${difficulty} questions: ${course.id}`);
+    if (new Set(questions.map(q => q.skill)).size < 2) errors.push(`too few challenge skills: ${course.id}/${difficulty}`);
+    for (const q of questions) {
+      challengeCount++;
+      if (middleIds.has(q.id)) errors.push(`duplicate challenge ID: ${q.id}`);
+      middleIds.add(q.id);
+      if (q.difficulty !== difficulty || q.tier !== "extra" || q.targetStage !== "middle_" + course.field) errors.push(`invalid challenge scope: ${q.id}`);
+      if (!q.curriculumRef || !q.curriculumSource || !q.subId || !q.context || q.contentVersion !== 1 || !q.factSources.length || !context.window.SocialQuestions.skills[q.skill]) errors.push(`missing challenge metadata: ${q.id}`);
+      if (q.type !== "mc4" || q.choices.length !== 4 || new Set(q.choices).size !== 4 || !Number.isInteger(q.answer) || !q.choices[q.answer]) errors.push(`invalid challenge choices: ${q.id}`);
+      if (!q.choiceReasons || q.choiceReasons.length !== 4 || !q.choiceReasons.every((reason, i) => i === q.answer ? reason === null : Object.hasOwn(context.window.MiddleCourses.mistakeLabels, reason))) errors.push(`invalid choice reason: ${q.id}`);
+      if (!Array.isArray(q.evidence) || q.evidence.length < 2 || !q.evidence.every(e => typeof e === "string" && e.trim())) errors.push(`missing evidence: ${q.id}`);
+      if (!Array.isArray(q.sourceMaterials) || q.sourceMaterials.length < 2) errors.push(`missing multiple sources: ${q.id}`);
+      else q.sourceMaterials.forEach(d => {
+        if (!d.title || d.fictional !== true || !["table", "text"].includes(d.kind)) errors.push(`unlabelled challenge source: ${q.id}`);
+        if (d.kind === "text" ? !d.text : !Array.isArray(d.headers) || !Array.isArray(d.rows) || !d.rows.length || d.rows.some(r => r.length !== d.headers.length)) errors.push(`malformed challenge source: ${q.id}`);
+      });
+    }
+  }
+});
+if (challengeCount !== 96) errors.push(`expected 96 multi-source challenges, got ${challengeCount}`);
 
 if (errors.length) {
   console.error(errors.join("\n"));
@@ -220,5 +245,5 @@ console.log(JSON.stringify({
   fictionalEncounters: Object.keys(context.window.MONSTER_DATA).length,
   companions: Object.keys(context.window.COMPANION_DATA).length,
   equipment: Object.keys(context.window.EQUIPMENT_DATA).length,
-  middleCourses: middleCourses.length, middleQuestions: middleIds.size
+  middleCourses: middleCourses.length, middleQuestions: middleIds.size, multiSourceChallenges: challengeCount
 }, null, 2));

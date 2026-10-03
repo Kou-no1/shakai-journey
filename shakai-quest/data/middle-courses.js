@@ -173,7 +173,31 @@
   window.MiddleCourses = {
     sources: sources,
     forNode: function (id) { var n = window.NODES_DATA[id]; return n && n.challengeStyle !== "kikitori" ? courses[n.lineId] || null : null; },
-    bank: function (id) { return courses[id] ? courses[id].questions : []; },
+    difficulties: { standard: "標準", applied: "応用", hard: "難問" },
+    mistakeLabels: { denominator: "割合の分母", conditions: "条件の照合", causality: "原因と結果", chronology: "年代・前後関係", source_scope: "資料が示す範囲", tradeoff: "両立と優先順位", scale: "単位・縮尺" },
+    bank: function (id, difficulty) {
+      difficulty = difficulty || "standard";
+      if (!Object.prototype.hasOwnProperty.call(courses, id) || !Object.prototype.hasOwnProperty.call(this.difficulties, difficulty)) return [];
+      var course = courses[id];
+      return !course ? [] : difficulty === "standard" ? course.questions : (course.levels && course.levels[difficulty] || []);
+    },
+    allQuestions: function (id) {
+      return Object.keys(this.difficulties).reduce(function (out, difficulty) { return out.concat(window.MiddleCourses.bank(id, difficulty)); }, []);
+    },
+    progressFor: function (id, difficulty, save) {
+      var p = save.middleProgress[id];
+      return !difficulty || difficulty === "standard" ? p : p.levels[difficulty];
+    },
+    reviewReasons: function (save) {
+      var result = {};
+      Object.keys(courses).forEach(function (id) {
+        window.MiddleCourses.allQuestions(id).forEach(function (q) {
+          var st = save.questionStats[q.id];
+          if (st && !st.lastCorrect && st.lastMistake) result[st.lastMistake] = (result[st.lastMistake] || 0) + 1;
+        });
+      });
+      return result;
+    },
     entryFor: function (id, save) {
       var nodeIds = Object.keys(window.NODES_DATA).filter(function (nodeId) { return window.NODES_DATA[nodeId].lineId === id; })
         .sort(function (a, b) { return window.NODES_DATA[a].order - window.NODES_DATA[b].order; });

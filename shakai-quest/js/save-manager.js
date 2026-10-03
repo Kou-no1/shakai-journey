@@ -11,7 +11,9 @@
   }
   function getDefault() {
     var p = {}, middle = {};
-    Object.keys(window.MIDDLE_COURSES || {}).forEach(function (id) { middle[id] = middleProgress(); });
+    Object.keys(window.MIDDLE_COURSES || {}).forEach(function (id) {
+      middle[id] = middleProgress(); middle[id].levels = { applied: middleProgress(), hard: middleProgress() };
+    });
     ids().forEach(function (id) {
       p[id] = progress();
       var node = window.NODES_DATA[id];
@@ -58,11 +60,16 @@
     base.meta = Object.assign(base.meta, src.meta || {}); base.meta.lastPlayedAt = date(base.meta.lastPlayedAt);
     Object.keys(window.MIDDLE_COURSES || {}).forEach(function (id) {
       var old = object(src.middleProgress) && object(src.middleProgress[id]) ? src.middleProgress[id] : {};
-      var knownIds = window.MiddleCourses.bank(id).map(function (q) { return q.id; });
-      base.middleProgress[id] = { completed: old.completed === true, perfect: old.perfect === true,
-        bestCorrect: Math.min(knownIds.length, number(old.bestCorrect, 0)), stats: normalizeStats(old.stats),
-        seenQuestionIds: unique(old.seenQuestionIds).filter(function (q) { return knownIds.includes(q); }),
-        masteredQuestionIds: unique(old.masteredQuestionIds).filter(function (q) { return knownIds.includes(q); }) };
+      Object.keys(window.MiddleCourses.difficulties).forEach(function (difficulty) {
+        var value = difficulty === "standard" ? old : object(old.levels) && object(old.levels[difficulty]) ? old.levels[difficulty] : {};
+        var knownIds = window.MiddleCourses.bank(id, difficulty).map(function (q) { return q.id; });
+        var normalized = { completed: value.completed === true, perfect: value.perfect === true,
+          bestCorrect: Math.min(knownIds.length, number(value.bestCorrect, 0)), stats: normalizeStats(value.stats),
+          seenQuestionIds: unique(value.seenQuestionIds).filter(function (q) { return knownIds.includes(q); }),
+          masteredQuestionIds: unique(value.masteredQuestionIds).filter(function (q) { return knownIds.includes(q); }) };
+        if (difficulty === "standard") base.middleProgress[id] = Object.assign(normalized, { levels: base.middleProgress[id].levels });
+        else base.middleProgress[id].levels[difficulty] = normalized;
+      });
     });
     ids().forEach(function (id) {
       var p = normalizeProgress(src.progress && src.progress[id]), node = window.NODES_DATA[id];
@@ -79,7 +86,8 @@
     Object.keys(object(src.questionStats) ? src.questionStats : {}).forEach(function (id) {
       var value = object(src.questionStats[id]) ? src.questionStats[id] : {}, attempts = number(value.attempts, 0);
       base.questionStats[id] = { attempts: attempts, correct: Math.min(attempts, number(value.correct, 0)), hints: number(value.hints, 0),
-        reviews: Math.min(attempts, number(value.reviews, 0)), lastCorrect: value.lastCorrect === true, lastAttemptAt: date(value.lastAttemptAt), contentVersion: number(value.contentVersion, 1) };
+        reviews: Math.min(attempts, number(value.reviews, 0)), lastCorrect: value.lastCorrect === true, lastAttemptAt: date(value.lastAttemptAt), contentVersion: number(value.contentVersion, 1),
+        lastMistake: Object.prototype.hasOwnProperty.call(window.MiddleCourses.mistakeLabels, value.lastMistake) ? value.lastMistake : null };
     });
     ["questionBags", "encounterBags"].forEach(function (k) {
       base[k] = {}; Object.keys(object(src[k]) ? src[k] : {}).forEach(function (key) { base[k][key] = unique(src[k][key]); });
@@ -137,7 +145,11 @@
   }
   function getNodeProgress(id) { return data().progress[id]; }
   function routeProgress(id, branch) { var p = getNodeProgress(id); return branch && p.branches[branch] ? p.branches[branch] : p; }
-  function getMiddleProgress(id) { var s = data(); return s.middleProgress[id] = s.middleProgress[id] || middleProgress(); }
+  function getMiddleProgress(id, difficulty) {
+    var s = data(), p = s.middleProgress[id];
+    if (!p || (difficulty && !Object.prototype.hasOwnProperty.call(window.MiddleCourses.difficulties, difficulty))) return null;
+    return window.MiddleCourses.progressFor(id, difficulty, s);
+  }
   function setNodeProgress(id, patch, branch) {
     var p = routeProgress(id, branch); Object.assign(p, patch);
     if (branch) ["basicClear", "advancedClear", "extraClear", "extraPerfectClear"].forEach(function (key) {

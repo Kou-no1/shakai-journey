@@ -79,7 +79,7 @@
       });
     });
     Object.keys(window.MIDDLE_COURSES).forEach(function (id) {
-      window.MiddleCourses.bank(id).forEach(function (q) {
+      window.MiddleCourses.allQuestions(id).forEach(function (q) {
         var stats = save.questionStats[q.id]; if (!stats) return;
         grouped[q.skill].correct += stats.correct || 0; grouped[q.skill].total += stats.attempts || 0;
       });
@@ -92,8 +92,11 @@
 
   function middleRows(save) {
     return '<table class="middle-report"><thead><tr><th scope="col">中学コース</th><th scope="col">習得</th><th scope="col">最高正解</th><th scope="col">完了</th></tr></thead><tbody>' + Object.keys(window.MIDDLE_COURSES).map(function (id) {
-      var course = window.MIDDLE_COURSES[id], p = save.middleProgress[id];
-      return '<tr><th scope="row">' + esc(course.title) + '</th><td>' + p.masteredQuestionIds.length + '/15</td><td>' + p.bestCorrect + '/15</td><td>' + (p.perfect ? '全問正解' : p.completed ? '完了' : '未完了') + '</td></tr>';
+      var course = window.MIDDLE_COURSES[id];
+      return Object.keys(window.MiddleCourses.difficulties).map(function (difficulty) {
+        var p = window.MiddleCourses.progressFor(id, difficulty, save), count = window.MiddleCourses.bank(id, difficulty).length;
+        return '<tr><th scope="row">' + esc(course.title) + '<small>' + esc(window.MiddleCourses.difficulties[difficulty]) + '</small></th><td>' + p.masteredQuestionIds.length + '/' + count + '</td><td>' + p.bestCorrect + '/' + count + '</td><td>' + (p.perfect ? '全問正解' : p.completed ? '完了' : '未完了') + '</td></tr>';
+      }).join("");
     }).join("") + '</tbody></table>';
   }
 
@@ -115,6 +118,9 @@
       '<section class="report-block"><h3>ライン別の進み具合</h3><div class="line-report-list">', lineRows(save), '</div></section>',
       '<section class="report-block"><h3>技能別の記録（学び直しを含む）</h3>', skillRows(save), '</section>',
       '<section class="report-block"><h3>中学発展の記録</h3>', middleRows(save), '</section>',
+      '<section class="report-block"><h3>次に確かめたい考え方</h3>', Object.keys(window.MiddleCourses.reviewReasons(save)).map(function (key) {
+        return '<p class="report-note">' + esc(window.MiddleCourses.mistakeLabels[key]) + ' / ' + window.MiddleCourses.reviewReasons(save)[key] + '問</p>';
+      }).join("") || '<p class="report-note">今のところ、資料照合の復習候補はありません。</p>', '</section>',
       '<p class="report-note">3・4年は全国共通編です。地域の具体的な教材は対象地域の設定後に追加します。</p>',
       '<section class="report-block report-weak"><h3>もう一度挑戦してみるとよさそうな駅</h3>', weakList(save), '</section>',
       '<div class="report-footer"><span>最終プレイ</span><strong>', esc(formatDate(save.meta && save.meta.lastPlayedAt)), '</strong></div>',

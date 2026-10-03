@@ -84,12 +84,30 @@ rt { font-size: 10px; font-weight: 400; }
 .result-panel { background: #fff; }
 .middle-tier { border-left: 4px solid var(--gold); }
 .middle-tier strong { color: #615011; }
+.middle-controls { margin: 20px 0; padding-top: 16px; border-top: 1px solid var(--paper-line); }
+.middle-controls h3 { margin: 0 0 10px; font-size: 16px; }
+.middle-controls .tier-button { width: 100%; margin-top: 12px; }
+.difficulty-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--paper-line); border-radius: 6px; overflow: hidden; }
+.difficulty-tabs button { min-height: 44px; border: 0; border-right: 1px solid var(--paper-line); background: #f3f7fc; color: var(--ink); font: inherit; cursor: pointer; }
+.difficulty-tabs button:last-child { border-right: 0; }
+.difficulty-tabs button[aria-pressed="true"] { background: #dff4f8; color: #163f52; font-weight: 700; }
+.source-materials { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+.source-materials .question-data { min-width: 0; margin: 0; }
+.source-materials .question-data p { font-size: 14px; line-height: 1.8; margin: 0; padding: 12px; background: #f3f7fc; border-left: 3px solid #709ba9; }
+.source-materials figcaption { color: #526471; font-weight: 700; }
+.evidence-details summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 700; }
+.evidence-details ol { padding-left: 24px; margin-top: 4px; }
+.evidence-details li { margin-bottom: 8px; }
+.mistake-cue { color: #754017; font-size: 14px; }
+.notebook-filter { display: grid; gap: 8px; font-size: 14px; margin: 18px 0; max-width: 380px; }
+.notebook-filter select { min-height: 44px; width: 100%; font: inherit; color: var(--ink); padding: 8px; border: 1px solid var(--paper-line); border-radius: 6px; background: white; }
 .quiz-progress { flex-wrap: wrap; gap: 8px; }
 .quiz-progress strong { min-width: 0; overflow-wrap: anywhere; }
 .middle-report { width: 100%; border-collapse: collapse; font-size: 13px; }
 .middle-report th, .middle-report td { padding: 10px 6px; border-bottom: 1px solid var(--paper-line); text-align: left; }
 .middle-report th:first-child { width: 45%; }
 .middle-report td { white-space: nowrap; }
+.middle-report small { display: block; margin-top: 4px; color: var(--ink-soft); font-weight: 400; }
 .overall-report { background: #eef4fb; }
 .report-weak { background: #f1f8fc; }
 .ghost-button { background: #f3f7fc; }
@@ -105,6 +123,7 @@ rt { font-size: 10px; font-weight: 400; }
   .screen-frame { padding: 16px; }
   .question-card { padding: 16px; }
   .question-text { font-size: 18px; }
+  .source-materials { grid-template-columns: minmax(0, 1fr); }
   .choice-grid { grid-template-columns: 1fr; }
   .choice-grid.ox { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .equipment-slots { grid-template-columns: repeat(2, minmax(0, 1fr)); }

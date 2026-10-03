@@ -33,13 +33,19 @@
   }
   function prepare(q) {
     var result = Object.assign({}, q, { choices: q.choices.slice() });
+    if (q.sourceMaterials) result.sourceMaterials = JSON.parse(JSON.stringify(q.sourceMaterials));
+    if (q.evidence) result.evidence = q.evidence.slice();
     if (q.type !== "mc4") return result;
     var order = shuffle(q.choices.map(function (_, i) { return i; }));
     result.choices = order.map(function (i) { return q.choices[i]; });
     result.answer = order.indexOf(q.answer);
+    if (q.choiceReasons) result.choiceReasons = order.map(function (i) { return q.choiceReasons[i]; });
     return result;
   }
   var readings = {
+    "年齢構成": "ねんれいこうせい", "主従関係": "しゅじゅうかんけい", "現物": "げんぶつ", "金額": "きんがく", "給付": "きゅうふ", "課税": "かぜい",
+    "有効票": "ゆうこうひょう", "無効票": "むこうひょう", "有権者": "ゆうけんしゃ", "保守": "ほしゅ", "排出": "はいしゅつ", "単価": "たんか",
+    "分母": "ぶんぼ", "分子": "ぶんし", "冠水": "かんすい", "奉公": "ほうこう", "御恩": "ごおん", "負担": "ふたん", "所得": "しょとく",
     "立憲主義": "りっけんしゅぎ", "摂関政治": "せっかんせいじ", "廃藩置県": "はいはんちけん", "地租改正": "ちそかいせい", "領事裁判権": "りょうじさいばんけん",
     "人口密度": "じんこうみつど", "年較差": "ねんかくさ", "等高線": "とうこうせん", "促成栽培": "そくせいさいばい", "抑制栽培": "よくせいさいばい",
     "中央値": "ちゅうおうち", "相関": "そうかん", "外部不経済": "がいぶふけいざい", "付加価値": "ふかかち", "金納": "きんのう", "主権": "しゅけん",

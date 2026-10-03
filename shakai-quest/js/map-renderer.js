@@ -187,10 +187,6 @@
       tierButton(node, progress, "extra", node.challengeStyle === "kikitori" ? "関連する資料" : "おまけ・先取り", "上の学年・中学・社会トリビア", progress.basicClear && hasTierQuestions(nodeId, "extra", branchId))
     ].join("");
     var middleCourse = window.MiddleCourses.forNode(nodeId);
-    if (middleCourse) {
-      var middle = window.SaveManager.getMiddleProgress(middleCourse.id);
-      tierHtml += '<button class="tier-button middle-tier ' + (middle.completed ? 'clear' : '') + '" type="button" data-tier="extra" data-middle-course="' + middleCourse.id + '" ' + (progress.basicClear ? '' : 'disabled') + '><strong>中学発展</strong><span>' + esc(middleCourse.title) + '</span><span>15問 / 習得 ' + middle.masteredQuestionIds.length + '/15' + (middle.perfect ? ' / 全問正解済み' : middle.completed ? ' / 完了済み' : '') + '</span></button>';
-    }
     root.innerHTML = [
       '<div class="back-row"><button class="ghost-button" type="button" data-action="back">地図へ戻る</button></div>',
       '<div class="node-layout"><section class="node-panel"><p class="eyebrow">', esc(node.unitName), '</p>',
@@ -199,6 +195,7 @@
       '<p class="mastery-line">基本の習得 ', progress.masteredQuestionIds.length, ' / ', window.SocialQuestions.bank(nodeId, branchId, "basic").length, ' 問</p>',
       '<fieldset class="course-controls"><legend>冒険のコース</legend><label>モード<select id="course-mode"><option value="learn">学び直し</option><option value="challenge">RPG挑戦</option></select></label><label>基本の問題数<select id="course-limit"><option value="all">全問</option><option value="5">5問</option><option value="10">10問</option></select></label></fieldset>',
       '<div class="tier-grid">', tierHtml, '</div>',
+      middleCourse ? '<section class="middle-controls" aria-label="中学発展"></section>' : '',
       '<button class="ghost-button" data-review>間違えた問題を学び直す</button>',
       node.branch ? '<button class="ghost-button" data-switch-branch>もう一つのルートへ</button>' : '',
       '</section>', rewardPreview(node, window.SaveManager.getNodeProgress(nodeId)), '</div>'
@@ -208,6 +205,21 @@
       button.addEventListener("click", function () { onStart({ nodeId: nodeId, tier: button.dataset.tier, branchId: branchId,
         options: { mode: root.querySelector("#course-mode").value, limit: root.querySelector("#course-limit").value, middleCourse: button.dataset.middleCourse || null } }); });
     });
+    if (middleCourse) {
+      var middleRoot = root.querySelector(".middle-controls");
+      function renderMiddle(difficulty, focus) {
+        var middle = window.SaveManager.getMiddleProgress(middleCourse.id, difficulty), count = window.MiddleCourses.bank(middleCourse.id, difficulty).length;
+        middleRoot.innerHTML = '<h3>中学発展</h3><div class="difficulty-tabs" role="group" aria-label="中学発展の難度">' + Object.keys(window.MiddleCourses.difficulties).map(function (key) {
+          return '<button type="button" data-difficulty="' + key + '" aria-pressed="' + (key === difficulty) + '">' + esc(window.MiddleCourses.difficulties[key]) + '</button>';
+        }).join("") + '</div><button class="tier-button middle-tier ' + (middle.completed ? 'clear' : '') + '" type="button" data-middle-course="' + middleCourse.id + '" data-middle-difficulty="' + difficulty + '" ' + (progress.basicClear ? '' : 'disabled') + '><strong>' + esc(middleCourse.title) + '</strong><span>' + esc(window.MiddleCourses.difficulties[difficulty]) + ' ' + count + '問 / 習得 ' + middle.masteredQuestionIds.length + '/' + count + (middle.perfect ? ' / 全問正解済み' : middle.completed ? ' / 完了済み' : '') + '</span></button>';
+        middleRoot.querySelectorAll("[data-difficulty]").forEach(function (b) { b.addEventListener("click", function () { renderMiddle(b.dataset.difficulty, true); }); });
+        middleRoot.querySelector("[data-middle-course]").addEventListener("click", function () {
+          onStart({ nodeId: nodeId, tier: "extra", branchId: branchId, options: { mode: root.querySelector("#course-mode").value, middleCourse: middleCourse.id, middleDifficulty: difficulty } });
+        });
+        if (focus) middleRoot.querySelector('[data-difficulty="' + difficulty + '"]').focus({ preventScroll: true });
+      }
+      renderMiddle("standard", false);
+    }
     root.querySelector("[data-review]").addEventListener("click", function () { onStart({ nodeId: nodeId, tier: "basic", branchId: branchId, options: { review: true, mode: "learn" } }); });
     var switchBranch = root.querySelector("[data-switch-branch]");
     if (switchBranch) switchBranch.addEventListener("click", function () { renderBranchPicker(node, root, onBack, onStart); });

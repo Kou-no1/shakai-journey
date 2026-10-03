@@ -204,7 +204,7 @@ async function run() {
     await page.evaluate(() => ShakaiApp.showTab('notebook'));
     assert.equal(await page.locator('.notebook-entry:has(.stage-label)').count(), 120);
     await page.evaluate(() => ShakaiApp.openReport());
-    assert.equal(await page.locator('.middle-report tbody tr').count(), 8);
+    assert.equal(await page.locator('.middle-report tbody tr').count(), 24);
     assert.match(await page.locator('.middle-report').innerText(), /14\/15/);
     await page.emulateMedia({ media: 'print' });
     assert.equal(await page.locator('.tabbar').isVisible(), false);
@@ -212,18 +212,98 @@ async function run() {
     await page.pdf({ path: path.join(out, 'middle-report.pdf'), format: 'A4' });
     await page.emulateMedia({ media: 'screen' });
 
+    for (const course of ['s5_koku', 's5_shoku', 's5_kogyo', 's5_joho', 's5_kankyo', 's6_sei', 's6_rek', 's6_kok']) {
+      const nodeId = await page.evaluate(id => Object.keys(NODES_DATA).find(n => NODES_DATA[n].lineId === id && NODES_DATA[n].order === 1), course);
+      for (const difficulty of ['applied', 'hard']) {
+        await page.evaluate(id => ShakaiApp.openNode(id), nodeId);
+        await page.locator('[data-difficulty="' + difficulty + '"]').focus(); await page.keyboard.press('Enter');
+        assert.equal(await page.locator('[data-difficulty="' + difficulty + '"]').getAttribute('aria-pressed'), 'true');
+        await page.locator('#course-mode').selectOption('learn');
+        await page.locator('[data-middle-course="' + course + '"]').click();
+        assert.equal(await page.evaluate(() => QuizEngine.getState().initialCount), 6);
+        assert.ok(await page.locator('#quiz-root .source-materials .question-data').count() >= 2);
+        let count = 0;
+        while (!await page.evaluate(() => QuizEngine.getState().finished)) {
+          const a = await page.evaluate(() => { const s = QuizEngine.getState(); return s.questions[s.index].answer; });
+          const isWrong = course === 's5_koku' && difficulty === 'applied' && count === 0;
+          await page.locator('[data-value="' + (isWrong ? (a + 1) % 4 : a) + '"]').click();
+          assert.ok(await page.locator('#quiz-root .evidence-details li').count() >= 2);
+          if (isWrong) {
+            assert.match(await page.locator('#quiz-root .mistake-cue').innerText(), /着目点/);
+            const saved = await page.evaluate(() => JSON.stringify(QuizEngine.getState()));
+            await page.reload(); await page.locator('[data-resume]').click();
+            assert.equal(await page.evaluate(() => JSON.stringify(QuizEngine.getState())), saved);
+            assert.match(await page.locator('.feedback').innerText(), /根拠を照合/);
+          }
+          await page.locator('[data-action="next"]').click(); assert.ok(count++ < 9);
+        }
+        const record = await page.evaluate(({ course, difficulty }) => SaveManager.getMiddleProgress(course, difficulty), { course, difficulty });
+        assert.equal(record.stats.total, 6); assert.equal(record.masteredQuestionIds.length, 6);
+        assert.equal(record.perfect, !(course === 's5_koku' && difficulty === 'applied'));
+      }
+    }
+    assert.equal(await page.evaluate(() => JSON.stringify(SaveManager.data().progress)), elementaryBeforeMiddle);
+    assert.equal(await page.evaluate(() => JSON.stringify(SaveManager.data().owned.equipment)), gearBeforeMiddle);
+    await page.evaluate(() => ShakaiApp.showTab('notebook'));
+    assert.equal(await page.locator('.notebook-entry:has(.stage-label)').count(), 216);
+
+    await page.evaluate(() => ShakaiApp.openNode('s5_joho01'));
+    await page.locator('[data-difficulty="hard"]').click(); await page.locator('[data-middle-course="s5_joho"]').click();
+    const mistake = await page.evaluate(() => { const q = QuizEngine.getState().questions[0], wrong = (q.answer + 1) % 4; return { wrong, reason: q.choiceReasons[wrong], id: q.id }; });
+    await page.locator('[data-value="' + mistake.wrong + '"]').click();
+    const firstStats = await page.evaluate(() => JSON.stringify(SaveManager.getMiddleProgress('s5_joho', 'hard').stats));
+    const expBeforeReview = await page.evaluate(() => SaveManager.data().player.exp);
+    await page.evaluate(() => ShakaiApp.showTab('notebook'));
+    await page.locator('[data-mistake-filter]').selectOption(mistake.reason);
+    assert.equal(await page.locator('.notebook-entry').count(), 1);
+    await page.locator('[data-review-node]').click();
+    assert.equal(await page.evaluate(() => QuizEngine.getState().initialCount), 1);
+    assert.equal(await page.evaluate(() => QuizEngine.getState().options.middleDifficulty), 'hard');
+    assert.equal(await page.evaluate(() => QuizEngine.getState().questions[0].id), mistake.id);
+    const reviewAnswer = await page.evaluate(() => QuizEngine.getState().questions[0].answer);
+    await page.locator('[data-value="' + reviewAnswer + '"]').click(); await page.locator('[data-action="next"]').click();
+    assert.equal(await page.evaluate(() => JSON.stringify(SaveManager.getMiddleProgress('s5_joho', 'hard').stats)), firstStats);
+    assert.equal(await page.evaluate(() => SaveManager.data().player.exp), expBeforeReview);
+    await page.evaluate(() => ShakaiApp.showTab('notebook')); await page.locator('[data-mistake-filter]').selectOption('');
+    await page.evaluate(() => ShakaiApp.openReport());
+    assert.equal(await page.locator('.middle-report tbody tr').count(), 24);
+    await page.emulateMedia({ media: 'print' });
+    assert.equal(await page.locator('.tabbar').isVisible(), false);
+    assert.equal(await page.locator('.report-actions').isVisible(), false);
+    await page.pdf({ path: path.join(out, 'middle-challenges-report.pdf'), format: 'A4' });
+    await page.emulateMedia({ media: 'screen' });
+
     for (const viewport of [{ width: 1280, height: 900 }, { width: 768, height: 1024 }, { width: 390, height: 844 }]) {
       await page.setViewportSize(viewport);
+      for (const [id, course] of [['s5_koku01', 's5_koku'], ['s6_sei01', 's6_sei'], ['s6_rek01', 's6_rek']]) for (const difficulty of ['applied', 'hard']) {
+        await page.evaluate(id => ShakaiApp.openNode(id), id);
+        await page.locator('[data-difficulty="' + difficulty + '"]').click();
+        await page.locator('[data-middle-course="' + course + '"]').click();
+        assert.ok(await page.locator('#quiz-root .source-materials .question-data').count() >= 2);
+        for (const text of await page.locator('#quiz-root .source-materials figcaption').allTextContents()) assert.match(text, /資料[ABC].*学習用の架空データ/);
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), difficulty + '/' + course + '/' + viewport.width);
+        assert.ok(await page.locator('#quiz-root .source-materials').evaluate(e => e.getBoundingClientRect().width > 250));
+        assert.ok(await page.locator('.choice-button').evaluateAll(els => els.every(e => e.scrollWidth <= e.clientWidth + 1 && e.getBoundingClientRect().height >= 44)));
+        assert.equal(await page.locator('.mote:visible').count(), 0);
+        await page.evaluate(() => document.querySelector('#toast-root').replaceChildren());
+        await page.screenshot({ path: path.join(out, 'multi-' + course + '-' + difficulty + '-' + viewport.width + '.png'), fullPage: true });
+        const a = await page.evaluate(() => QuizEngine.getState().questions[0].answer);
+        await page.locator('[data-value="' + ((a + 1) % 4) + '"]').click();
+        assert.ok(await page.locator('#quiz-root .evidence-details li').count() >= 2);
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'feedback overflow');
+        await page.evaluate(() => document.querySelector('#toast-root').replaceChildren());
+        await page.screenshot({ path: path.join(out, 'multi-feedback-' + course + '-' + difficulty + '-' + viewport.width + '.png'), fullPage: true });
+      }
       for (const [id, course] of [['s5_koku01', 's5_koku'], ['s6_sei01', 's6_sei'], ['s6_rek01', 's6_rek']]) {
         await page.evaluate(id => ShakaiApp.openNode(id), id);
         assert.ok(await page.locator('[data-middle-course]').evaluate(e => e.scrollWidth <= e.clientWidth + 1 && e.getBoundingClientRect().height >= 44));
         await page.locator('[data-middle-course="' + course + '"]').click();
         // Advance to a table through real answers; the bank and saved question order stay untouched.
-        while (!await page.locator('.question-data').count()) {
+        while (!await page.locator('#quiz-root .question-data').count()) {
           const a = await page.evaluate(() => { const s = QuizEngine.getState(); return s.questions[s.index].answer; });
           await page.locator('[data-value="' + a + '"]').click(); await page.locator('[data-action="next"]').click();
         }
-        assert.match(await page.locator('.question-data').innerText(), /学習用の架空データ/);
+        assert.match(await page.locator('#quiz-root .question-data').innerText(), /学習用の架空データ/);
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), course + ' overflow/' + viewport.width);
         assert.ok(await page.locator('.choice-button').evaluateAll(els => els.every(e => e.scrollWidth <= e.clientWidth + 1 && e.getBoundingClientRect().height >= 44)));
         assert.equal(await page.locator('.mote:visible').count(), 0);
@@ -295,7 +375,7 @@ async function run() {
     assert.equal(await protectedPage.evaluate(() => localStorage.getItem(SaveManager.key)), '{broken');
     await protectedPage.close();
     assert.deepEqual(errors, []); assert.deepEqual(external, []);
-    console.log('PASS browser: 3/4/5/6 maps, eight middle courses / 120 questions, independent progress, middle resume and reports, keyboard, HP/lives, retries, rare rewards, equipment, companions, report print, responsive SVG pixels, ruby, reduced motion, war restraint, file://, no external requests');
+    console.log('PASS browser: 3/4/5/6 maps, middle 120 standard + 96 multi-source questions, difficulty-specific progress, misconception review, resume, keyboard, HP/lives, retries, rare rewards, equipment, companions, 24-row report print, responsive SVG pixels, ruby, reduced motion, war restraint, file://, no external requests');
     console.log('Screenshots: ' + out);
   } finally { if (browser) await browser.close(); await new Promise(resolve => server.close(resolve)); }
 }

@@ -278,7 +278,171 @@ test('legacy saves initialize middle progress and new records appear once in not
   w.InventoryRenderer.notebook(env.root); assert.equal((env.root.innerHTML.match(/class="notebook-entry"/g) || []).length, 1);
   assert.match(env.root.innerHTML, /中学発展・地理/);
   w.ReportRenderer.render(env.root, () => {}); assert.match(env.root.innerHTML, /中学発展の記録/);
-  assert.equal((env.root.innerHTML.match(/<th scope="row">/g) || []).length, 8);
+  assert.equal((env.root.innerHTML.match(/<th scope="row">/g) || []).length, 24);
   assert.match(w.SocialQuestions.ruby('年較差と立憲主義'), /ねんかくさ/);
+});
+test('96 multi-source challenges have unique content, consistent rationale mappings and no elementary leakage', () => {
+  const { w } = create(), ids = new Set(), stems = new Set();
+  for (const c of Object.values(w.MIDDLE_COURSES)) {
+    assert.equal(w.MiddleCourses.allQuestions(c.id).length, 27);
+    for (const difficulty of ['applied', 'hard']) {
+      const bank = w.MiddleCourses.bank(c.id, difficulty); assert.equal(bank.length, 6);
+      assert.equal(new Set(bank.map(q => q.answer)).size, 4);
+      for (const q of bank) {
+        assert.ok(!ids.has(q.id)); ids.add(q.id); assert.ok(!stems.has(q.stem)); stems.add(q.stem);
+        assert.equal(q.targetStage, 'middle_' + c.field); assert.equal(q.difficulty, difficulty);
+        assert.ok(q.sourceMaterials.length >= 2 && q.evidence.length >= 2);
+        assert.equal(q.choiceReasons[q.answer], null);
+        q.choiceReasons.forEach((reason, i) => { if (i !== q.answer) assert.ok(w.MiddleCourses.mistakeLabels[reason]); });
+        const markup = w.QuizEngine.diagram(q);
+        assert.equal((markup.match(/<figure/g) || []).length, q.sourceMaterials.length);
+        assert.equal((markup.match(/学習用の架空データ/g) || []).length, q.sourceMaterials.length);
+        assert.doesNotMatch(markup, /undefined/);
+      }
+    }
+  }
+  assert.equal(ids.size, 96);
+  assert.equal(w.MiddleCourses.bank('s5_koku', '__proto__').length, 0);
+  assert.equal(w.MiddleCourses.bank('__proto__', 'hard').length, 0);
+});
+
+test('all 16 upper-level courses keep independent mastery, first accuracy and idempotent rewards', () => {
+  const env = create(), { w } = env;
+  for (const course of Object.keys(w.MIDDLE_COURSES)) {
+    const nodeId = Object.keys(w.NODES_DATA).find(n => w.NODES_DATA[n].lineId === course && w.NODES_DATA[n].order === 1);
+    w.SaveManager.setNodeProgress(nodeId, { basicClear: true });
+    const elementary = JSON.stringify(w.SaveManager.data().progress);
+    const standard = JSON.stringify(w.SaveManager.getMiddleProgress(course));
+    for (const difficulty of ['applied', 'hard']) {
+      const s = runCourse(env, nodeId, 'extra', null, { mode: 'learn', middleCourse: course, middleDifficulty: difficulty });
+      const p = w.SaveManager.getMiddleProgress(course, difficulty);
+      assert.ok(p.completed && p.perfect); assert.equal(p.stats.total, 6); assert.equal(p.stats.correct, 6);
+      assert.equal(p.bestCorrect, 6); assert.equal(p.seenQuestionIds.length, 6); assert.equal(p.masteredQuestionIds.length, 6);
+      const exp = w.SaveManager.data().player.exp; w.SocialRewards.complete(s); assert.equal(w.SaveManager.data().player.exp, exp);
+      assert.equal(JSON.stringify(w.SaveManager.data().progress), elementary);
+      assert.equal(w.SaveManager.getMiddleProgress(course).stats.total, 0);
+    }
+    const before = JSON.parse(standard); delete before.levels;
+    const after = JSON.parse(JSON.stringify(w.SaveManager.getMiddleProgress(course))); delete after.levels;
+    assert.deepEqual(after, before);
+  }
+  assert.equal(w.SaveManager.data().owned.equipment.length, 0);
+  const loaded = create(w.SaveManager.exportJSON());
+  for (const id of Object.keys(w.MIDDLE_COURSES)) for (const difficulty of ['applied', 'hard']) {
+    assert.equal(loaded.w.SaveManager.getMiddleProgress(id, difficulty).bestCorrect, 6);
+  }
+});
+
+test('shuffling preserves per-choice reasons and saved materials do not mutate the source bank', () => {
+  const { w } = create(); const bank = w.MiddleCourses.bank('s5_koku', 'hard'), original = JSON.stringify(bank), positions = new Set();
+  let seed = 42; w.Math.random = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+  for (const q of bank) for (let n = 0; n < 8; n++) {
+    const prepared = w.SocialQuestions.prepare(q); positions.add(prepared.answer);
+    for (let i = 0; i < 4; i++) assert.equal(prepared.choiceReasons[i], q.choiceReasons[q.choices.indexOf(prepared.choices[i])]);
+    assert.equal(prepared.choices[prepared.answer], q.choices[q.answer]);
+    prepared.sourceMaterials[0].title = 'test change'; prepared.evidence[0] = 'test change';
+  }
+  assert.equal(positions.size, 4); assert.equal(JSON.stringify(bank), original);
+});
+
+test('specific misconception review persists, filters the selected difficulty and does not inflate statistics', () => {
+  const env = create(), { w } = env; w.SaveManager.setNodeProgress('s5_joho01', { basicClear: true });
+  w.QuizEngine.start(env.root, 's5_joho01', 'extra', null, { replace: true, mode: 'learn', middleCourse: 's5_joho', middleDifficulty: 'applied' });
+  const s = w.QuizEngine.getState(), q = s.questions[0], wrong = (q.answer + 1) % 4, reason = q.choiceReasons[wrong];
+  w.QuizEngine.answer(env.root, wrong);
+  assert.equal(w.SaveManager.data().questionStats[q.id].lastMistake, reason);
+  assert.match(env.root.innerHTML, /根拠を照合/); assert.ok(env.root.innerHTML.includes(w.MiddleCourses.mistakeLabels[reason]));
+  const loaded = create(w.SaveManager.exportJSON()); assert.ok(loaded.w.QuizEngine.resume(loaded.root));
+  assert.equal(loaded.w.SaveManager.data().questionStats[q.id].lastMistake, reason);
+  w.InventoryRenderer.notebook(env.root); assert.ok(env.root.innerHTML.includes(w.MiddleCourses.mistakeLabels[reason]));
+  const stats = JSON.stringify(w.SaveManager.getMiddleProgress('s5_joho', 'applied').stats), exp = w.SaveManager.data().player.exp;
+  assert.equal(w.QuizEngine.start(env.root, 's5_joho01', 'extra', null, { replace: true, review: true, middleCourse: 's5_joho', middleDifficulty: 'hard', mistakeReason: reason }), false);
+  assert.equal(w.QuizEngine.start(env.root, 's5_joho01', 'extra', null, { replace: true, review: true, middleCourse: 's5_joho', middleDifficulty: 'applied', mistakeReason: 'not-a-reason' }), false);
+  const review = runCourse(env, 's5_joho01', 'extra', null, { review: true, middleCourse: 's5_joho', middleDifficulty: 'applied', mistakeReason: reason });
+  assert.equal(review.initialCount, 1); assert.equal(review.questions[0].id, q.id);
+  assert.equal(w.SaveManager.data().questionStats[q.id].lastMistake, null);
+  assert.equal(w.MiddleCourses.reviewReasons(w.SaveManager.data())[reason], undefined);
+  assert.equal(JSON.stringify(w.SaveManager.getMiddleProgress('s5_joho', 'applied').stats), stats);
+  assert.equal(w.SaveManager.data().player.exp, exp);
+  assert.equal(w.SaveManager.getMiddleProgress('s5_joho', 'applied').perfect, false);
+});
+
+test('upper courses preserve first accuracy through retries and hints, and reject invalid difficulty or basic gates', () => {
+  const env = create(), { w } = env;
+  assert.equal(w.QuizEngine.start(env.root, 's5_koku01', 'extra', null, { middleCourse: 's5_koku', middleDifficulty: 'hard' }), false);
+  w.SaveManager.setNodeProgress('s5_koku01', { basicClear: true });
+  for (const difficulty of ['unknown', '__proto__', 'toString']) assert.equal(w.QuizEngine.start(env.root, 's5_koku01', 'extra', null, { middleCourse: 's5_koku', middleDifficulty: difficulty }), false);
+  const r = runCourse(env, 's5_koku01', 'extra', null, { mode: 'learn', middleCourse: 's5_koku', middleDifficulty: 'hard' }, true);
+  const p = w.SaveManager.getMiddleProgress('s5_koku', 'hard');
+  assert.equal(r.questions.length, 7); assert.equal(r.firstCorrect, 5); assert.equal(p.stats.total, 6); assert.equal(p.stats.correct, 5);
+  assert.equal(p.perfect, false); assert.equal(w.SaveManager.data().owned.kakeraCount, 6);
+  w.QuizEngine.start(env.root, 's5_koku01', 'extra', null, { replace: true, mode: 'learn', middleCourse: 's5_koku', middleDifficulty: 'hard' });
+  w.QuizEngine.useItem('hint');
+  while (!w.QuizEngine.getState().finished) {
+    const s = w.QuizEngine.getState(); w.QuizEngine.answer(env.root, s.questions[s.index].answer); w.QuizEngine.advance();
+  }
+  assert.equal(w.QuizEngine.getState().result.perfect, false); assert.equal(p.perfect, false);
+  const challenge = create(); challenge.w.SaveManager.setNodeProgress('s5_koku01', { basicClear: true });
+  challenge.w.QuizEngine.start(challenge.root, 's5_koku01', 'extra', null, { mode: 'challenge', middleCourse: 's5_koku', middleDifficulty: 'hard' });
+  let n = 0;
+  while (!challenge.w.QuizEngine.getState().finished) {
+    const s = challenge.w.QuizEngine.getState(), q = s.questions[s.index]; challenge.w.QuizEngine.answer(challenge.root, n++ < 2 ? (q.answer + 1) % 4 : q.answer); challenge.w.QuizEngine.advance();
+  }
+  assert.equal(challenge.w.QuizEngine.getState().result.success, false);
+  assert.equal(challenge.w.SaveManager.getMiddleProgress('s5_koku', 'hard').completed, false);
+});
+
+test('pre-expansion middle saves and active standard sessions migrate without changing records or order', () => {
+  const env = create(), { w } = env; w.SaveManager.setNodeProgress('s5_koku01', { basicClear: true });
+  runCourse(env, 's5_koku01', 'extra', null, { mode: 'learn', middleCourse: 's5_koku' });
+  w.QuizEngine.start(env.root, 's5_koku01', 'extra', null, { replace: true, mode: 'learn', middleCourse: 's5_koku' });
+  w.QuizEngine.answer(env.root, w.QuizEngine.getState().questions[0].answer);
+  const legacy = JSON.parse(w.SaveManager.exportJSON()); Object.values(legacy.middleProgress).forEach(p => delete p.levels);
+  const order = JSON.stringify(legacy.activeSession), standard = JSON.stringify(legacy.middleProgress.s5_koku);
+  const loaded = create(JSON.stringify(legacy)); assert.ok(loaded.w.QuizEngine.resume(loaded.root));
+  assert.equal(JSON.stringify(loaded.w.QuizEngine.getState()), order);
+  const p = JSON.parse(JSON.stringify(loaded.w.SaveManager.getMiddleProgress('s5_koku'))); delete p.levels;
+  assert.equal(JSON.stringify(p), standard);
+  assert.equal(loaded.w.SaveManager.getMiddleProgress('s5_koku', 'hard').stats.total, 0);
+});
+
+test('upper sessions resume on branch routes and archive altered source materials, evidence or rationale', () => {
+  const env = create(), { w } = env;
+  w.SaveManager.setNodeProgress('s5_koku01', { basicClear: true }); w.SaveManager.setNodeProgress('s5_koku02', { basicClear: true });
+  w.SaveManager.setNodeProgress('s5_koku03', { basicClear: true }, 'wajyu');
+  w.QuizEngine.start(env.root, 's5_koku03', 'extra', 'wajyu', { mode: 'learn', middleCourse: 's5_koku', middleDifficulty: 'hard' });
+  w.QuizEngine.answer(env.root, (w.QuizEngine.getState().questions[0].answer + 1) % 4);
+  const raw = w.SaveManager.exportJSON(), loaded = create(raw);
+  assert.ok(loaded.w.QuizEngine.resume(loaded.root)); assert.equal(JSON.stringify(loaded.w.QuizEngine.getState()), JSON.stringify(w.QuizEngine.getState()));
+  for (const mutate of [s => s.questions[0].sourceMaterials[0].title = 'changed', s => s.questions[0].evidence[0] = 'changed', s => s.questions[0].choiceReasons[0] = 'changed', s => s.options.middleDifficulty = 'unknown']) {
+    const saved = JSON.parse(raw); mutate(saved.activeSession); const bad = create(JSON.stringify(saved));
+    assert.equal(bad.w.QuizEngine.resume(bad.root), false); assert.ok(bad.w.SaveManager.data().meta.archivedSession);
+  }
+  w.ReportRenderer.render(env.root, () => {}); assert.equal((env.root.innerHTML.match(/<th scope="row">/g) || []).length, 24);
+  assert.match(env.root.innerHTML, /次に確かめたい考え方/);
+});
+
+test('quantitative answer anchors agree with independent calculations across all numerical courses', () => {
+  const { w } = create();
+  const checks = [
+    ['s5_koku', 'applied', 1, `${45000 / 50}人/km²`], ['s5_koku', 'applied', 2, (80000 * .3).toLocaleString('en-US')],
+    ['s5_koku', 'applied', 5, `${3 * 250}m`], ['s5_koku', 'applied', 6, `${(4 - 3) * 250 / 100 * 2}分`],
+    ['s5_koku', 'hard', 1, `${(10500 - 10000) - (600 - 400)}人`],
+    ['s5_shoku', 'applied', 1, `${120 / 15}t/ha`], ['s5_shoku', 'applied', 2, `${(100 * 10).toLocaleString('en-US')}t`],
+    ['s5_shoku', 'applied', 5, `${(600 * .9 + 300 * .2 + 100 * .6) / 1000 * 100}%`],
+    ['s5_shoku', 'hard', 1, `${40 + 30}t`], ['s5_shoku', 'hard', 5, `${(7 - 5) - (6 - 4)}t/ha`],
+    ['s5_kogyo', 'applied', 3, `${10 * (120 - 100)}円`], ['s5_kogyo', 'applied', 4, `${20 * 120 - 10 * 120 - 500}円`],
+    ['s5_kogyo', 'hard', 1, `${20 * 120 - 15 * 120 - 500}円`], ['s5_kogyo', 'hard', 5, `${1000 - 400}円`], ['s5_kogyo', 'hard', 6, `${1000 - 500 - 300 - 100}円`],
+    ['s5_joho', 'applied', 1, `${80 / 200 * 100}%`], ['s5_joho', 'hard', 1, `${((100 * .9 + 800 * .3) / 900 * 100).toFixed(1)}%`], ['s5_joho', 'hard', 3, `${(1200 - 1000) - (1100 - 900)}円`],
+    ['s5_kankyo', 'applied', 1, `${18000 * .8 / 200}L`], ['s5_kankyo', 'applied', 2, `${(18000 * .2 - 12000 * .1).toLocaleString('en-US')}L`], ['s5_kankyo', 'applied', 5, `${40 * .75 + 30 * .6 + 30}kg`],
+    ['s5_kankyo', 'hard', 5, `${80 + 10 * 2}kg`], ['s5_kankyo', 'hard', 6, `${(80 - 20) / (30 - 10)}年`],
+    ['s6_sei', 'applied', 1, `${290 / (600 - 20) * 100}%`], ['s6_sei', 'applied', 2, `${Math.round(290 / 1000 * 100)}%`], ['s6_sei', 'applied', 6, `${(2 + 1) * 5}万円`],
+    ['s6_sei', 'hard', 3, `${200 * .1 + 100 * .2}万円`], ['s6_sei', 'hard', 4, `${((200 * .1 + 100 * .2) / 300 * 100).toFixed(1)}%`],
+    ['s6_rek', 'hard', 3, `${300 / 8}俵`], ['s6_rek', 'hard', 4, `${300 / 8}俵`],
+    ['s6_kok', 'applied', 1, `${600 / 3}L/人`], ['s6_kok', 'applied', 2, `${((600 - 500) / 600 * 100).toFixed(1)}%`], ['s6_kok', 'hard', 6, `${60 + 10 * 5}万円`]
+  ];
+  for (const [course, difficulty, number, expected] of checks) {
+    const q = w.MiddleCourses.bank(course, difficulty)[number - 1]; assert.ok(q.choices[q.answer].includes(expected), q.id + ': ' + expected);
+  }
 });
 console.log(`${passed}/${passed} checks passed`);
