@@ -123,6 +123,7 @@
       '<section class="report-block"><h3>技能別の記録（学び直しを含む）</h3>', skillRows(save), '</section>',
       '<section class="report-block"><h3>中学発展の記録</h3>', middleRows(save), '</section>',
       '<section class="report-block"><h3>記述・資料探究（自己評価）</h3>', writtenRows(save), '</section>',
+      '<section class="report-block"><h3>くらしの探究</h3><p>最初に選んだ案を記録した場面　', Object.keys(save.lifeRecords).length, ' / ', Object.keys(window.LIFE_CASES).length, '</p></section>',
       '<section class="report-block"><h3>別問題の復習（初回回答）</h3>', practiceRows(save), '</section>',
       '<section class="report-block"><h3>次に確かめたい考え方</h3>', Object.keys(window.MiddleCourses.reviewReasons(save)).map(function (key) {
         return '<p class="report-note">' + esc(window.MiddleCourses.mistakeLabels[key]) + ' / ' + window.MiddleCourses.reviewReasons(save)[key] + '問</p>';

@@ -1,0 +1,106 @@
+.life-inquiry {
+  --life-accent: #226756;
+  max-width: 56rem;
+  margin-inline: auto;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.life-header, .life-nav, .life-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .5rem 1rem;
+}
+.life-header {
+  justify-content: space-between;
+  border-bottom: 2px solid var(--paper-line);
+  padding-block: .75rem;
+}
+.life-inquiry :is(h2, h3, h4, p) { margin: 0; }
+.life-inquiry h2 { font-size: 1.4rem; line-height: 1.5; }
+.life-inquiry h3 { font-size: 1.12rem; line-height: 1.6; }
+.life-inquiry h4 { font-size: 1rem; }
+.life-inquiry p { line-height: 1.8; }
+.life-inquiry button { white-space: normal; letter-spacing: 0; }
+.life-inquiry :is(button, summary):focus-visible {
+  outline: 3px solid var(--life-accent);
+  outline-offset: 2px;
+}
+.life-inquiry [tabindex="-1"] { scroll-margin-block: 6rem; }
+.life-inquiry [tabindex="-1"]:focus:not(:focus-visible) { outline: none; }
+.life-kicker, .life-theme, .life-source-type, .life-instruction, .life-actions span {
+  color: var(--ink-soft);
+  font-size: .88rem;
+}
+.life-inquiry .life-total { margin-block: 1rem; }
+.life-total strong { color: var(--life-accent); }
+.life-grade { margin-block: 1.25rem; }
+.life-grade h3 { border-inline-start: 4px solid var(--life-accent); padding-inline-start: .6rem; }
+.life-grade [data-life-grade="4"] { --life-accent: #275c83; }
+.life-grade [data-life-grade="5"] { --life-accent: #775115; }
+.life-grade [data-life-grade="6"] { --life-accent: #71415a; }
+.life-grid {
+  margin-top: .6rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  gap: .6rem;
+}
+.life-entry {
+  display: grid;
+  grid-template-columns: 4.6rem minmax(0, 1fr);
+  align-items: center;
+  gap: .85rem;
+  min-width: 0;
+  padding: .75rem;
+  text-align: start;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--paper-line);
+  border-radius: 6px;
+}
+.life-entry:hover, .life-options button:hover { border-color: var(--life-accent); background: var(--paper-soft); }
+.life-scene { display: grid; place-items: center; background: var(--paper-soft); border-radius: 4px; }
+.life-scene .station-bg { display: block; position: static; width: 100%; height: auto; aspect-ratio: 2 / 1; opacity: 1; }
+.life-entry-text { display: grid; gap: .25rem; }
+.life-status { color: var(--ink-soft); font-size: .8rem; }
+.life-status.is-recorded { color: var(--life-accent); font-weight: 700; }
+.life-inquiry .life-situation { margin-block: 1rem 1.5rem; }
+.life-evidence table {
+  width: 100%;
+  margin-block: .8rem;
+  border-collapse: collapse;
+  background: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+.life-evidence caption, .life-note h4 { font-weight: 700; text-align: start; }
+.life-evidence caption { padding-bottom: .35rem; }
+.life-evidence :is(td, th) { padding: .55rem .65rem; border: 1px solid var(--paper-line); line-height: 1.6; text-align: start; }
+.life-evidence thead { background: var(--paper-deep); }
+.life-evidence tbody th { font-weight: 600; background: var(--paper-soft); }
+.life-note { padding: .65rem .85rem; border-inline-start: 3px solid var(--life-accent); background: #f1f7f3; }
+.life-question, .life-response { border-top: 1px solid var(--paper-line); margin-top: 1.2rem; padding-top: 1rem; }
+.life-options { display: grid; gap: .5rem; margin-top: .75rem; }
+.life-options button {
+  display: flex;
+  gap: .7rem;
+  align-items: baseline;
+  padding: .75rem;
+  border: 1px solid var(--paper-line);
+  border-radius: 5px;
+  color: var(--ink);
+  background: var(--paper);
+  text-align: start;
+  font: inherit;
+  line-height: 1.6;
+}
+.life-letter { flex: none; font-weight: 700; color: var(--life-accent); }
+.life-inquiry .life-chosen { font-weight: 700; }
+.life-response h4, .life-response details { margin-top: .9rem; }
+.life-response summary { color: var(--life-accent); padding-block: .35rem; cursor: pointer; }
+.life-actions { margin-block: 1rem; }
+@media (max-width: 36rem) {
+  .life-header { align-items: flex-start; }
+  .life-nav { gap: .4rem; }
+  .life-entry { grid-template-columns: 3.5rem minmax(0, 1fr); }
+  .life-evidence :is(td, th) { padding: .35rem; }
+}

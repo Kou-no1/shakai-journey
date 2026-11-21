@@ -150,6 +150,62 @@
       '</div></section>';
   }
 
+  function goalDetails(id, save) {
+    if (!Object.prototype.hasOwnProperty.call(window.MEIBUTSU_DATA, id)) return null;
+    var item = window.MEIBUTSU_DATA[id];
+    var node = window.NODES_DATA[item.nodeId];
+    if (node.challengeStyle === "kikitori") return null;
+    var stations = window.MapRenderer.nodesForLine(node.lineId);
+    var next = stations.filter(function (station) {
+      return station.order <= node.order && window.SaveManager.isNodeUnlocked(station.nodeId, save);
+    }).pop();
+    var option = node.branch && node.branch.options.find(function (b) { return b.meibutsuIds.includes(id); });
+    var routeItems = option ? option.meibutsuIds : node.meibutsuIds;
+    var before = routeItems.slice(0, routeItems.indexOf(id)).filter(function (other) { return !save.owned.meibutsu.includes(other); });
+    return {
+      name: item.name,
+      route: node.stationName + (option ? "（" + option.label + "）" : ""),
+      remaining: before.length + 1,
+      next: next,
+      acquired: save.owned.meibutsu.includes(id)
+    };
+  }
+
+  function renderMapGoal(root) {
+    var save = window.SaveManager.data();
+    var goal = goalDetails(save.settings.collectionGoal, save);
+    root.hidden = !goal;
+    root.innerHTML = "";
+    if (!goal) return;
+    var action = goal.acquired ? "資料館で見る" : goal.next.stationName + "へ";
+    var detail = goal.acquired ? "資料館に収蔵しました。" : goal.route + "で基本をあと" + goal.remaining + "回クリアすると手に入るよ。";
+    root.innerHTML = '<section class="collection-goal"><div><small>探している名産品</small><h3>' + esc(goal.name) + '</h3><p>' + esc(detail) +
+      '</p></div><button class="primary-button" type="button" data-goal-travel>' + esc(action) + '</button></section>';
+    root.querySelector("[data-goal-travel]").addEventListener("click", function () {
+      if (!goal.acquired) return window.ShakaiApp.openNode(goal.next.nodeId);
+      window.ShakaiApp.showTab("collection");
+      var card = document.querySelector('#collection-root [data-id="' + CSS.escape(save.settings.collectionGoal) + '"]');
+      if (card) {
+        card.tabIndex = -1;
+        card.focus({ preventScroll: true });
+        card.scrollIntoView({ block: "center" });
+      }
+    });
+  }
+
+  function goalPicker(save) {
+    var active = save.settings.collectionGoal;
+    var options = Object.entries(window.MEIBUTSU_DATA).filter(function (entry) {
+      return window.NODES_DATA[entry[1].nodeId].challengeStyle !== "kikitori" &&
+        (entry[0] === active || !save.owned.meibutsu.includes(entry[0]));
+    });
+    if (!options.length) return "";
+    return '<section class="collection-goal"><label>探したい名産品<select data-goal-picker><option value="">目標を選ばない</option>' +
+      options.map(function (entry) {
+        return '<option value="' + esc(entry[0]) + '"' + (entry[0] === active ? ' selected' : '') + '>' + esc(entry[1].name) + '</option>';
+      }).join("") + '</select></label><button data-goal-map type="button" class="ghost-button"' + (active ? '' : ' disabled') + '>地図で行き先を見る</button></section>';
+  }
+
   function render(root) {
     var save = window.SaveManager.data();
     root.innerHTML = [
@@ -160,6 +216,7 @@
       '<div class="summary-tile"><span>認定キャラ</span><strong>', save.owned.chara.length, '</strong></div>',
       '<div class="summary-tile"><span>実績</span><strong>', (save.owned.achievements || []).length, '</strong></div>',
       '</div>',
+      goalPicker(save),
       '<section class="collection-section"><h3>ありふれた収蔵品</h3><div class="common-list">', renderCommonItems(save), '</div></section>',
       '<div class="collection-sections">',
       renderAchievements(save),
@@ -169,7 +226,18 @@
       renderCategory("実用アイテム", "item", save),
       '</div>'
     ].join("");
+    var picker = root.querySelector("[data-goal-picker]");
+    if (picker) {
+      picker.disabled = window.SaveManager.status().protected;
+      picker.addEventListener("change", function () {
+        save.settings.collectionGoal = picker.value || null;
+        window.SaveManager.save();
+        var nextPicker = root.querySelector("[data-goal-picker]");
+        if (nextPicker) nextPicker.focus({ preventScroll: true });
+      });
+      root.querySelector("[data-goal-map]").addEventListener("click", function () { window.ShakaiApp.showTab("map"); });
+    }
   }
 
-  window.CollectionRenderer = { render: render, getInfo: getInfo, collectIds: collectIds };
+  window.CollectionRenderer = { render: render, renderMapGoal: renderMapGoal, getInfo: getInfo, collectIds: collectIds };
 }());

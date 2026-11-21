@@ -2,6 +2,65 @@
   "use strict";
   var esc = window.ShakaiUtil.esc;
   var fields = { geography: "地理", history: "歴史", civics: "公民" };
+  function bridgeFor(id) {
+    var bridges = window.MIDDLE_BRIDGES || {};
+    var bridge = Object.prototype.hasOwnProperty.call(bridges, id) && bridges[id];
+    var node = bridge && window.NODES_DATA[bridge.nodeId];
+    return node && node.challengeStyle !== "kikitori" ? bridge : null;
+  }
+  function bridgesForNode(nodeId) {
+    return Object.keys(window.MIDDLE_COURSES).reduce(function (matches, id) {
+      var b = bridgeFor(id), course = window.MIDDLE_COURSES[id];
+      if (b && b.nodeId === nodeId) matches.push({ courseId: id, title: course.title, field: course.field, nodeId: nodeId });
+      return matches;
+    }, []);
+  }
+  function stationLabel(b) {
+    return '小' + b.nodeId.charAt(1) + '・' + window.NODES_DATA[b.nodeId].stationName;
+  }
+  function canOpenStation(nodeId) {
+    return window.SaveManager.hasQuestionBank(nodeId) && window.SaveManager.isNodeUnlocked(nodeId);
+  }
+  function stationLink(b, save) {
+    var id = b.nodeId, node = window.NODES_DATA[id], enabled = canOpenStation(id), note = '';
+    if (!enabled) {
+      var prev = Object.values(window.NODES_DATA).find(function (n) { return n.lineId === node.lineId && n.order === node.order - 1; });
+      note = window.SaveManager.hasQuestionBank(id) && prev ? '「' + prev.stationName + '」の基本をクリアすると開きます。' : 'この駅の教材は準備中です。';
+    } else if (node.branch) {
+      var chosen = node.branch.options.find(function (option) { return option.branchId === save.progress[id].branchChosen; });
+      note = chosen ? '選択中のルート：' + chosen.label : '駅で学びたいルートを選べます。';
+    }
+    return '<div class="bridge-station"><button type="button" class="ghost-button" data-bridge-station="' + esc(id) + '"' +
+      (enabled ? '' : ' disabled') + '>' + esc(stationLabel(b)) + (enabled ? 'を開く' : '（未開放）') + '</button>' +
+      (note ? '<small>' + esc(note) + '</small>' : '') + '</div>';
+  }
+  function bridgeLesson(course, save) {
+    var b = bridgeFor(course.id);
+    if (!b) return '';
+    return '<section class="middle-bridge" aria-labelledby="bridge-heading"><p class="eyebrow">小学校から中学' + fields[course.field] +
+      'へ</p><h3 id="bridge-heading">' + esc(b.title) + '</h3><dl class="bridge-steps"><div><dt>小学校の手がかり</dt><dd>' +
+      esc(b.prior) + '</dd></div><div><dt>中学で考えること</dt><dd>' + esc(b.shift) + '</dd></div></dl>' +
+      '<p class="bridge-evidence"><strong>練習用の架空の事例</strong>' + esc(b.caseText) +
+      '</p><fieldset class="bridge-task"><legend>' + esc(b.question) + '</legend><div class="bridge-choices">' +
+      b.choices.map(function (label, i) {
+        return '<button class="ghost-button" type="button" data-bridge-choice="' + i + '" aria-pressed="false">' + esc(label) + '</button>';
+      }).join('') + '</div></fieldset><p class="bridge-feedback" role="status"></p>' + stationLink(b, save) + '</section>';
+  }
+  function bindBridge(root, course) {
+    var b = bridgeFor(course.id);
+    if (!b) return;
+    var choices = root.querySelectorAll('[data-bridge-choice]');
+    choices.forEach(function (button) {
+      button.addEventListener('click', function () {
+        var correct = Number(button.dataset.bridgeChoice) === b.answer;
+        choices.forEach(function (choice) { choice.setAttribute('aria-pressed', String(choice === button)); });
+        root.querySelector('.bridge-feedback').textContent = correct ? 'その通り。' + b.reason : 'もう一度考えてみよう。' + b.hint;
+      });
+    });
+    root.querySelector('[data-bridge-station]').addEventListener('click', function () {
+      if (canOpenStation(b.nodeId)) window.ShakaiApp.openNode(b.nodeId);
+    });
+  }
   function writtenCount(id, save) {
     return window.MiddleCourses.writtenFor(id).filter(function (q) { var r = save.writtenRecords[q.id]; return r && r.contentVersion === q.contentVersion; }).length;
   }
@@ -26,7 +85,7 @@
     if (course) {
       var written = window.MiddleCourses.writtenFor(course.id);
       root.innerHTML = '<div class="section-head"><div><p class="eyebrow">中学発展・' + fields[course.field] + '</p><h2>' + esc(course.title) + '</h2></div><button class="ghost-button" data-middle-back>中学の地図へ</button></div>' + resume +
-        '<div class="middle-course-progress">' + progress(course.id, save) + '</div><h3>資料と知識のチャレンジ</h3><div class="middle-levels">' + Object.keys(window.MiddleCourses.difficulties).map(function (difficulty) {
+        '<div class="middle-course-progress">' + progress(course.id, save) + '</div>' + bridgeLesson(course, save) + '<h3>資料と知識のチャレンジ</h3><div class="middle-levels">' + Object.keys(window.MiddleCourses.difficulties).map(function (difficulty) {
           var bank = window.MiddleCourses.bank(course.id, difficulty);
           return '<button class="tier-button middle-tier" data-portal-course="' + course.id + '" data-portal-difficulty="' + difficulty + '"><strong>' + window.MiddleCourses.difficulties[difficulty] + '</strong><span>' + bank.length + '問</span></button>';
         }).join("") + '</div><section class="middle-written-list"><h3>記述・資料探究 <small>' + writtenCount(course.id, save) + '/' + written.length + '</small></h3>' + written.map(function (q) {
@@ -34,12 +93,15 @@
           return '<article><h4>' + window.SocialQuestions.ruby(q.stem) + '</h4><span>' + status + '</span><button class="ghost-button" data-written-id="' + q.id + '">記述に挑戦</button></article>';
         }).join("") + '</section>';
       root.querySelector("[data-middle-back]").addEventListener("click", function () { window.ShakaiApp.openMiddle(); });
+      bindBridge(root, course);
     } else {
       root.innerHTML = '<div class="section-head"><h2>中学発展の地図</h2></div>' + resume + Object.keys(fields).map(function (field) {
         var ids = Object.keys(window.MIDDLE_COURSES).filter(function (id) { return window.MIDDLE_COURSES[id].field === field; });
         return '<section class="middle-field" data-middle-field="' + field + '"><h3>' + fields[field] + '</h3><div class="middle-course-grid">' + ids.map(function (id) {
-          var c = window.MIDDLE_COURSES[id];
-          return '<article class="middle-course-card">' + window.ShakaiIcons.stationBackground(c.entryNodeId) + '<h4>' + esc(c.title) + '</h4><div class="middle-course-progress">' + progress(id, save) + '</div><p>記述 ' + writtenCount(id, save) + '/' + window.MiddleCourses.writtenFor(id).length + '</p><button class="primary-button" data-open-middle="' + id + '">コースを開く</button></article>';
+          var c = window.MIDDLE_COURSES[id], b = bridgeFor(id);
+          return '<article class="middle-course-card">' + window.ShakaiIcons.stationBackground(b ? b.nodeId : c.entryNodeId) + '<h4>' + esc(c.title) + '</h4>' +
+            (b ? '<p class="bridge-preview"><small>' + esc(stationLabel(b)) + 'から</small>' + esc(b.title) + '</p>' : '') +
+            '<div class="middle-course-progress">' + progress(id, save) + '</div><p>記述 ' + writtenCount(id, save) + '/' + window.MiddleCourses.writtenFor(id).length + '</p><button class="primary-button" data-open-middle="' + id + '">コースを開く</button></article>';
         }).join("") + '</div></section>';
       }).join("") + practice(root, save);
     }
@@ -62,5 +124,5 @@
       return '<article class="written-entry"><h4>' + window.SocialQuestions.ruby(q.stem) + '</h4><p class="written-response">' + esc(r.response) + '</p><p>自己評価 ' + r.ratings.reduce(function (n, v) { return n + v; }, 0) + '/6 / 記録 ' + r.attempts + '回</p><details><summary>資料・採点観点・模範解答</summary>' + window.QuizEngine.diagram(q) + '<ol>' + q.rubric.map(function (criterion, i) { return '<li>' + window.SocialQuestions.ruby(criterion) + '：' + r.ratings[i] + '/2</li>'; }).join("") + '</ol><p>' + window.SocialQuestions.ruby(q.modelAnswer) + '</p></details><button class="ghost-button" data-written-id="' + esc(id) + '">もう一度書く</button></article>';
     }).join("") + '</section>';
   }
-  window.MiddleRenderer = { render: render, launchPractice: launchPractice, writtenCount: writtenCount, writtenNotebook: writtenNotebook };
+  window.MiddleRenderer = { render: render, bridgesForNode: bridgesForNode, launchPractice: launchPractice, writtenCount: writtenCount, writtenNotebook: writtenNotebook };
 }());

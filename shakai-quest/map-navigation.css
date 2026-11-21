@@ -1,0 +1,136 @@
+/* Elementary route map and station detail. */
+#map-root, #node-root {
+  --map-ink: #203b3b;
+  --map-muted: #495c60;
+  --map-green: #165d50;
+}
+
+#map-root .grade-tabs { margin-bottom: 12px; }
+#map-root .grade-tabs button { min-width: 0; }
+.grade-overview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 24px;
+  padding-block: 4px 12px;
+  color: var(--map-ink);
+}
+.grade-overview h2 { margin: 0; font-size: 1.25rem; }
+.grade-overview .region-scope { margin: 4px 0 0; color: var(--map-muted); }
+.grade-progress { display: grid; gap: 4px; min-width: min(100%, 13rem); font-size: 0.875rem; }
+.grade-progress progress { width: 100%; height: 9px; accent-color: var(--map-green); }
+.grade-progress span { color: var(--map-muted); }
+.map-actions, .node-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.map-actions { border-bottom: 1px solid var(--paper-line); padding: 0 0 12px; }
+.map-actions .resume-button { margin: 0; }
+.map-actions [data-next-station] {
+  border: 1px solid var(--map-green);
+  background: #e4f3ec;
+  color: var(--map-green);
+}
+
+#map-root .map-stack { gap: 4px; }
+#map-root .line-title-row { flex-wrap: wrap; gap: 4px 14px; }
+#map-root .line-meta { color: var(--map-muted); }
+#map-root .station-list.route { display: block; }
+#map-root .station-list.sugoroku {
+  display: block;
+  max-height: none;
+  overflow: visible;
+  padding-left: 9px;
+  border-left-width: 3px;
+}
+#map-root .station-group {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 8px;
+}
+#map-root .station-button {
+  align-content: start;
+  padding: 10px;
+  border-radius: 6px;
+  color: var(--map-ink);
+  overflow-wrap: anywhere;
+}
+#map-root .station-button.playable { border-top: 3px solid var(--line-color); }
+#map-root .station-button:is(.locked, .coming-soon) {
+  opacity: 1;
+  background: #f0f3f3;
+  border: 1px dashed #94a4a5;
+}
+#map-root .station-art {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: min(55%, 10rem);
+  z-index: 0;
+  pointer-events: none;
+}
+#map-root .station-bg { opacity: .18; }
+#map-root .station-button:disabled .station-bg { opacity: .09; }
+#map-root .station-top { align-items: center; }
+#map-root .station-number { color: var(--map-ink); background: #fff; border: 2px solid var(--line-color); }
+#map-root .station-status { color: var(--map-green); font-size: .8125rem; }
+#map-root .station-button:disabled .station-status,
+#map-root .station-sub, .station-condition, .station-branch { color: var(--map-muted); }
+#map-root .station-name { margin-top: 5px; }
+.station-condition, .station-branch { display: block; margin-top: 5px; font-size: .8125rem; line-height: 1.45; }
+#map-root .stamp-row { flex-wrap: wrap; margin-top: 6px; }
+#map-root .mini-stamp {
+  display: inline-flex;
+  width: auto;
+  height: auto;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: #fff;
+  color: var(--map-muted);
+  font-size: .75rem;
+  line-height: 1.4;
+}
+#map-root .mini-stamp.clear { border-color: var(--map-green); color: var(--map-green); background: #e4f3ec; }
+#map-root .quiet-station { border-color: #7a8480; }
+#map-root .quiet-station .station-number { border-color: #7a8480; }
+.map-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+#node-root .course-controls { gap: 8px 14px; padding: 5px 0 10px; margin: 6px 0; }
+#node-root .course-controls label { gap: 3px; }
+#node-root :is(.tier-grid, .branch-grid) {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 8px;
+}
+#node-root .branch-grid { margin-top: 12px; }
+#node-root .tier-button:disabled, #node-root .node-actions button:disabled {
+  opacity: 1;
+  background: #eff2f2;
+  color: var(--map-muted);
+  border: 1px dashed #94a4a5;
+}
+.branch-reward, .tier-state { display: block; }
+#node-root .tier-state { color: var(--map-green); }
+.node-actions { margin-top: 12px; }
+.map-source-note { border-top: 1px solid #a6b0ad; color: var(--map-muted); }
+.map-source-note h3 { margin: 0; font-size: 1rem; }
+.map-source-note p { margin: 6px 0; max-width: 48em; line-height: 1.7; }
+#node-root .quiet-node .tier-button { box-shadow: none; border-color: #8b9992; }
+
+#map-root :is(button, progress):focus-visible,
+#node-root :is(button, select, [tabindex]):focus-visible {
+  outline: 3px solid #204f91;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px white;
+}
+@media (max-width: 540px) {
+  .grade-overview { display: grid; gap: 6px; }
+  .grade-progress { grid-template-columns: 1fr auto; align-items: center; min-width: 0; }
+  .grade-progress progress { grid-column: 1 / -1; grid-row: 2; }
+  .grade-progress span { text-align: right; }
+  #map-root .world-map { display: none; }
+  #map-root .station-list.world { display: block; }
+  .map-actions button { text-align: left; }
+}

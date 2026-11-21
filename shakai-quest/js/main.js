@@ -11,6 +11,7 @@
   }
 
   function showScreen(name) {
+    if (name !== "quiz") document.querySelectorAll("#toast-root .quiz-reward").forEach(function (el) { el.remove(); });
     document.querySelectorAll(".screen").forEach(function (screen) {
       screen.classList.toggle("active", screen.id === "screen-" + name);
     });
@@ -19,6 +20,8 @@
   function setActiveTab(tabName) {
     document.querySelectorAll(".tab").forEach(function (tab) {
       tab.classList.toggle("active", tab.dataset.tab === tabName);
+      if (tab.dataset.tab === tabName) tab.setAttribute("aria-current", "page");
+      else tab.removeAttribute("aria-current");
     });
   }
 
@@ -30,10 +33,10 @@
     $("#kakera-count").textContent = save.owned.kakeraCount;
   }
 
-  function toast(message) {
+  function toast(message, kind) {
     var root = $("#toast-root");
     var el = document.createElement("div");
-    el.className = "toast";
+    el.className = kind === "reward" ? "toast quiz-reward" : "toast";
     el.textContent = message;
     root.appendChild(el);
     while (root.children.length > 2) root.firstElementChild.remove();
@@ -103,10 +106,17 @@
   }
 
   function renderMap() {
+    window.CollectionRenderer.renderMapGoal($("#map-goal"));
     window.MapRenderer.renderMap(roots.map, openNode);
   }
 
   function openNode(nodeId) {
+    var grade = Number(nodeId.charAt(1));
+    var save = window.SaveManager.data();
+    if (window.NODES_DATA[nodeId] && grade !== save.settings.lastGrade) {
+      save.settings.lastGrade = grade;
+      window.SaveManager.save();
+    }
     showScreen("node");
     setActiveTab("");
     window.MapRenderer.renderNode(roots.node, nodeId, function () {
@@ -114,6 +124,38 @@
     }, function (payload) {
       startQuiz(payload.nodeId, payload.tier, payload.branchId, payload.options);
     });
+    renderNodeConnections(nodeId);
+  }
+
+  function renderNodeConnections(nodeId) {
+    var nav = $("#node-connections");
+    nav.replaceChildren();
+    nav.hidden = true;
+    if (window.NODES_DATA[nodeId].challengeStyle === "kikitori") return;
+
+    function addLink(label, destination) {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "ghost-button";
+      button.textContent = label;
+      button.addEventListener("click", destination);
+      nav.appendChild(button);
+      nav.hidden = false;
+    }
+    Object.entries(window.LIFE_CASES).forEach(function (entry) {
+      var id = entry[0], activity = entry[1];
+      if (activity.nodeId === nodeId) addLink("くらしの探究「" + activity.title + "」", function () { openLife(id); });
+    });
+    window.MiddleRenderer.bridgesForNode(nodeId).forEach(function (bridge) {
+      var course = window.MIDDLE_COURSES[bridge.courseId];
+      addLink("中学へ「" + course.title + "」", function () { openMiddle(course.id); });
+    });
+  }
+
+  function openLife(caseId) {
+    setActiveTab("map");
+    showScreen("life");
+    window.LifeRenderer.render(roots.life, caseId);
   }
 
   function startQuiz(nodeId, tier, branchId, options) {
@@ -182,9 +224,7 @@
         showTab(tab.dataset.tab);
       });
     });
-    $("#reset-view-btn").addEventListener("click", function () {
-      showTab("map");
-    });
+    $("#open-life-btn").addEventListener("click", function () { openLife(); });
   }
 
   function wireSettings() {
@@ -227,6 +267,7 @@
 
   function init() {
     roots = { map: $("#map-root"), middle: $("#middle-root"), node: $("#node-root"), quiz: $("#quiz-root"), collection: $("#collection-root"), report: $("#report-root"), inventory: $("#inventory-root"), notebook: $("#notebook-root") };
+    roots.life = $("#life-root");
     window.SaveManager.load();
     if (window.AchievementManager) window.AchievementManager.checkAchievements(false);
     updateHud();
@@ -246,6 +287,6 @@
     });
   }
 
-  window.ShakaiApp = { toast: toast, showTab: showTab, openNode: openNode, startQuiz: startQuiz, resumeQuiz: resumeQuiz, openReport: openReport, openMiddle: openMiddle, startWritten: startWritten };
+  window.ShakaiApp = { toast: toast, showTab: showTab, openNode: openNode, startQuiz: startQuiz, resumeQuiz: resumeQuiz, openReport: openReport, openMiddle: openMiddle, openLife: openLife, startWritten: startWritten };
   document.addEventListener("DOMContentLoaded", init);
 }());

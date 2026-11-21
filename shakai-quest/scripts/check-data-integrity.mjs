@@ -45,6 +45,8 @@ run("data/middle-challenges.js");
 run("data/middle-expansion.js");
 run("data/middle-written.js");
 run("data/middle-review.js");
+run("data/middle-bridges.js");
+run("data/life-cases.js");
 run("data/rpg-data.js");
 
 const {
@@ -249,6 +251,24 @@ Object.keys(context.window.MIDDLE_COURSES).forEach(id => {
   if (count !== (validLineId(id) ? 2 : 4)) errors.push(`written coverage mismatch: ${id}`);
 });
 
+const bridges = context.window.MIDDLE_BRIDGES;
+const lifeCases = Object.entries(context.window.LIFE_CASES);
+for (const id of new Set([...Object.keys(bridges), ...Object.keys(context.window.MIDDLE_COURSES)])) {
+  const bridge = bridges[id];
+  if (!context.window.MIDDLE_COURSES[id] || !bridge || !NODES_DATA[bridge.nodeId] || bridge.nodeId === "s6_rek11" ||
+      !bridge.prior || !bridge.shift || !bridge.caseText || !bridge.reason || !bridge.hint ||
+      !Number.isInteger(bridge.answer) || !bridge.choices[bridge.answer] || new Set(bridge.choices).size < 2) errors.push("invalid elementary bridge: " + id);
+}
+for (const [id, task] of lifeCases) {
+  if (task.id !== id || !NODES_DATA[task.nodeId] || task.grade !== Number(task.nodeId[1]) || task.nodeId === "s6_rek11" ||
+      !task.question || !task.activity || !task.evidence.rows.length ||
+      !task.evidence.rows.every(row => row.length === task.evidence.columns.length) ||
+      task.choices.length !== 3 || new Set(task.choices.map(choice => choice.id)).size !== 3 ||
+      !task.choices.every(choice => choice.text && choice.feedback) || task.choices.filter(choice => choice.recommended).length !== 1) errors.push("invalid everyday inquiry: " + id);
+}
+for (const grade of [3, 4, 5, 6]) {
+  if (lifeCases.filter(([, task]) => task.grade === grade).length < 2) errors.push("missing everyday inquiry for grade " + grade);
+}
 if (errors.length) {
   console.error(errors.join("\n"));
   process.exit(1);
@@ -268,5 +288,5 @@ console.log(JSON.stringify({
   companions: Object.keys(context.window.COMPANION_DATA).length,
   equipment: Object.keys(context.window.EQUIPMENT_DATA).length,
   middleCourses: middleCourses.length, middleQuestions: middleIds.size - written.length - practice.length, multiSourceChallenges: challengeCount,
-  writtenTasks: written.length, transferReviewQuestions: practice.length
+  writtenTasks: written.length, transferReviewQuestions: practice.length, courseBridges: Object.keys(bridges).length, lifeCases: lifeCases.length
 }, null, 2));

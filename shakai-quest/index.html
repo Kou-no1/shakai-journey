@@ -7,6 +7,10 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23F6EEE1'/%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%23B8544A' stroke-width='4' stroke-dasharray='4 5'/%3E%3Cpath d='M22 34h20M32 22v23' stroke='%23B8544A' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="rpg.css">
+  <link rel="stylesheet" href="map-navigation.css">
+  <link rel="stylesheet" href="journey-results.css">
+  <link rel="stylesheet" href="middle-bridges.css">
+  <link rel="stylesheet" href="life-cases.css">
 </head>
 <body>
   <svg class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
@@ -45,7 +49,7 @@
     </header>
 
     <nav class="tabbar" aria-label="メイン">
-      <button class="tab active" type="button" data-tab="map">路線図</button>
+      <button class="tab active" type="button" data-tab="map" aria-current="page">路線図</button>
       <button class="tab" type="button" data-tab="middle">中学</button>
       <button class="tab" type="button" data-tab="collection">資料館</button>
       <button class="tab" type="button" data-tab="inventory">装備・仲間</button>
@@ -66,15 +70,18 @@
             <p class="eyebrow">学年別の冒険</p>
             <h2 id="map-title">旅の地図</h2>
           </div>
-          <button id="reset-view-btn" class="ghost-button" type="button">地図へ戻る</button>
+          <button id="open-life-btn" class="ghost-button" type="button">くらしの探究</button>
         </div>
+        <div id="map-goal" hidden></div>
         <div id="map-root"></div>
       </section>
 
       <section id="screen-node" class="screen" aria-labelledby="node-title">
         <div id="node-root"></div>
+        <nav id="node-connections" aria-label="この駅から広げる学び" hidden></nav>
       </section>
 
+      <section id="screen-life" class="screen" aria-label="くらしの探究"><div id="life-root"></div></section>
       <section id="screen-middle" class="screen" aria-label="中学発展の地図"><div id="middle-root"></div></section>
 
       <section id="screen-quiz" class="screen" aria-labelledby="quiz-title">
@@ -196,6 +203,8 @@
   <script src="data/middle-expansion.js"></script>
   <script src="data/middle-written.js"></script>
   <script src="data/middle-review.js"></script>
+  <script src="data/middle-bridges.js"></script>
+  <script src="data/life-cases.js"></script>
   <script src="data/rpg-data.js"></script>
   <script src="js/rpg-system.js"></script>
   <script src="js/save-manager.js"></script>
@@ -208,6 +217,7 @@
   <script src="js/quiz-engine.js"></script>
   <script src="js/written-engine.js"></script>
   <script src="js/middle-renderer.js"></script>
+  <script src="js/life-renderer.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

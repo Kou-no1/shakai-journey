@@ -22,8 +22,8 @@
     });
     return { schema: SCHEMA, player: { name: "旅人", level: 1, exp: 0, title: "見習い探検者", equipped: { sword: null, shield: null, armor: null, gauntlet: null } },
       owned: { meibutsu: [], ijin: [], chara: [], companions: [], items: [], achievements: [], equipment: [], monsters: [], clearedMonsters: [], kakeraCount: 0, commonItems: {}, consumables: { potion: 2, hint: 1 } },
-      progress: p, middleProgress: middle, practiceProgress: {}, writtenRecords: {}, questionStats: {}, questionBags: {}, encounterBags: {}, activeSession: null, activeCompanions: [], rewardedSessions: [],
-      settings: { ruby: true, sound: false, motion: true, lastGrade: 5 }, meta: { lastPlayedAt: null } };
+      progress: p, middleProgress: middle, practiceProgress: {}, writtenRecords: {}, lifeRecords: {}, questionStats: {}, questionBags: {}, encounterBags: {}, activeSession: null, activeCompanions: [], rewardedSessions: [],
+      settings: { ruby: true, sound: false, motion: true, lastGrade: 5, collectionGoal: null }, meta: { lastPlayedAt: null } };
   }
   function number(value, fallback) { return Number.isFinite(Number(value)) && Number(value) >= 0 ? Math.floor(Number(value)) : fallback; }
   function unique(value) { return Array.isArray(value) ? Array.from(new Set(value.filter(function (id) { return typeof id === "string"; }))) : []; }
@@ -56,8 +56,17 @@
     // A consumed item stays at zero; starter supplies only apply when an old save lacks this field.
     base.owned.consumables = object(src.owned && src.owned.consumables) ? { potion: number(src.owned.consumables.potion, 0), hint: number(src.owned.consumables.hint, 0) } : base.owned.consumables;
     base.settings = Object.assign(base.settings, src.settings || {});
+    var goal = base.settings.collectionGoal;
+    if (typeof goal !== "string" || !Object.prototype.hasOwnProperty.call(window.MEIBUTSU_DATA, goal) ||
+        window.NODES_DATA[window.MEIBUTSU_DATA[goal].nodeId].challengeStyle === "kikitori") base.settings.collectionGoal = null;
     base.settings.lastGrade = [3, 4, 5, 6].includes(Number(base.settings.lastGrade)) ? Number(base.settings.lastGrade) : 5;
     base.meta = Object.assign(base.meta, src.meta || {}); base.meta.lastPlayedAt = date(base.meta.lastPlayedAt);
+    if (object(src.lifeRecords)) {
+      Object.keys(src.lifeRecords).forEach(function (id) {
+        var record = src.lifeRecords[id];
+        if (object(record) && validLifeChoice(id, record.choice)) base.lifeRecords[id] = { choice: record.choice };
+      });
+    }
     Object.keys(window.MIDDLE_COURSES || {}).forEach(function (id) {
       var old = object(src.middleProgress) && object(src.middleProgress[id]) ? src.middleProgress[id] : {};
       Object.keys(window.MiddleCourses.difficulties).forEach(function (difficulty) {
@@ -188,11 +197,24 @@
     data().meta.lastPlayedAt = s.lastAttemptAt; save(); return s;
   }
   function reset() { protectedRaw = null; warning = ""; currentData = getDefault(); return save(); }
+  function validLifeChoice(id, choice) {
+    var cases = window.LIFE_CASES;
+    return cases && Object.prototype.hasOwnProperty.call(cases, id) &&
+      Number.isInteger(choice) && choice >= 0 && choice < cases[id].choices.length;
+  }
+  function recordLifeChoice(id, choice) {
+    var s = data();
+    if (protectedRaw !== null || !validLifeChoice(id, choice) || Object.prototype.hasOwnProperty.call(s.lifeRecords, id)) return false;
+    s.lifeRecords[id] = { choice: choice };
+    s.meta.lastPlayedAt = new Date().toISOString();
+    save();
+    return true;
+  }
   function importJSON(raw) { var migrated = normalize(validate(JSON.parse(raw))); protectedRaw = null; warning = ""; currentData = migrated; save(); return currentData; }
   window.SaveManager = {
     key: SAVE_KEY, schema: SCHEMA, load: load, save: save, data: data, getDefault: getDefault, transaction: transaction,
     getNodeProgress: getNodeProgress, routeProgress: routeProgress, setNodeProgress: setNodeProgress, chooseBranch: chooseBranch, isNodeUnlocked: isNodeUnlocked,
-    getMiddleProgress: getMiddleProgress,
+    getMiddleProgress: getMiddleProgress, recordLifeChoice: recordLifeChoice,
     getPracticeProgress: function (reason) {
       if (!window.MiddleCourses.practiceCourse(reason)) return null;
       var s = data();
