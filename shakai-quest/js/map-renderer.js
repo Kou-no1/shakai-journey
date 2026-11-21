@@ -84,6 +84,7 @@
 
   function renderMap(root, onNodeSelect) {
     var save = window.SaveManager.data(), grade = save.settings.lastGrade;
+    window.TravelAtlas.render(grade, onNodeSelect);
     var lines = (window.LINES_DATA || []).filter(function (l) { return l.grade === grade; }).sort(function (a, b) { return a.order - b.order; });
     var groups = lines.map(function (line) { return nodesForLine(line.lineId); });
     var nodes = [].concat.apply([], groups), completed = basicCount(nodes);
@@ -178,6 +179,7 @@
     }).join("");
     root.innerHTML = [
       '<div class="back-row"><button class="ghost-button" type="button" data-action="back">地図へ戻る</button></div>',
+      window.TravelAtlas.arrival(node),
       '<div class="node-panel"><p class="eyebrow">', esc(node.stationName), 'の分かれ道</p><h2 id="node-title" tabindex="-1">どちらを探検する？</h2>',
       '<p class="node-meta">あとでもう一方のルートを選べます。学習の記録はルートごとに残ります。</p>',
       '<div class="branch-grid">', buttons, '</div></div>'
@@ -218,6 +220,7 @@
     var middleCourse = window.MiddleCourses.forNode(nodeId);
     root.innerHTML = [
       '<div class="back-row"><button class="ghost-button" type="button" data-action="back">地図へ戻る</button></div>',
+      window.TravelAtlas.arrival(node),
       '<div class="node-layout', quiet ? ' quiet-node' : '', '"><section class="node-panel"><p class="eyebrow">', esc(node.unitName), ' / ', node.order, '番駅</p>',
       '<h2 id="node-title" tabindex="-1">', esc(node.stationName), '</h2><p class="node-meta">', esc(node.subunitName), '</p>',
       branchOption ? '<p class="node-meta">選択中ルート: <strong>' + esc(branchOption.label) + '</strong></p>' : '',

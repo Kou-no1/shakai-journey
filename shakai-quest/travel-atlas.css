@@ -1,0 +1,163 @@
+/* Bookcloth, brass and washi surround the activity; question sheets keep their white ground. */
+@media screen {
+  body {
+    background-color: #292b40;
+    background-image: repeating-linear-gradient(32deg, transparent 0 28px, #94b6b318 28px 29px, transparent 29px 57px),
+      repeating-linear-gradient(-32deg, transparent 0 28px, #94b6b318 28px 29px, transparent 29px 57px),
+      linear-gradient(120deg,#31283d,#203846 72%,#324e4c);
+  }
+  .app-shell {
+    border: 1px solid #947955; border-radius: 8px; background: #faf6ea;
+    box-shadow: 3px 3px #d8cba9, 5px 5px #544246, 7px 7px #b29772, 0 18px 55px #0e1b2999;
+  }
+  .app-header {
+    background: repeating-linear-gradient(48deg,transparent 0 3px,#ffffff06 3px 4px),#342e43;
+    border-bottom: 3px double #c2a572; padding-block: 14px;
+  }
+  .brand h1 { font: 700 28px/1.25 "Klee One","Yu Mincho","Hiragino Mincho ProN",serif; color: #fff2d6; }
+  .brand-mark { width: 48px; height: 48px; transform: rotate(-3deg); }
+  .app-header .eyebrow { color: #e2cda4; }
+  .player-card {
+    min-width: 150px; padding: 5px 0 5px 16px; background: none; border: 0; border-left: 1px solid #957c62;
+    border-radius: 0; line-height: 1.2; gap: 3px;
+  }
+  .player-card strong { color: #ffcf84; }
+  .player-card small, .player-card > span { color: #eee1c7; }
+  .tabbar { background: #f0e7d5; border-bottom: 1px solid #c7baa4; }
+  .tab { color: #635744; }
+  .tab.active { color: #923e35; border-color: #aa4d3e; background: #faf6e9; }
+  .screen-frame { padding-top: 16px; }
+  #screen-map { --map-ink: #323c3e; }
+  .atlas-map { margin: -16px -20px 18px; }
+  .atlas-sky {
+    position: relative; isolation: isolate; overflow: hidden; min-height: 252px;
+    display: flex; align-items: center; color: #fff4d8;
+    background: linear-gradient(103deg,#1f3443 0%,#254a52 42%,#365e64 74%,#34475b);
+    border-bottom: 3px double #cfb17a;
+  }
+  .atlas-map[data-sky="early"] .atlas-sky { background: linear-gradient(103deg,#253d45,#375c55 55%,#527669); }
+  .atlas-map[data-sky="castle"] .atlas-sky { background: linear-gradient(103deg,#343348,#624859 63%,#88605e); }
+  #atlas-picture { position: absolute; z-index: -1; inset: 0 0 0 27%; pointer-events: none; }
+  .atlas-plate { width: 100%; height: 100%; display: block; }
+  .atlas-caption { padding: 20px 0 20px 32px; width: 35%; position: relative; }
+  .atlas-folio { margin: 0 0 10px; font: 700 11px/1.5 Georgia,serif; color: #fae1ac; }
+  .atlas-folio b { font: 12px/1.3 ui-monospace,monospace; border-left: 1px solid #cdb47b; padding-left: 9px; margin-left: 7px; }
+  #map-title { margin: 0; font: 700 44px/1.24 "Klee One","Yu Mincho","Hiragino Mincho ProN",serif; color: #fff5db; }
+  #atlas-target { margin: 10px 0 17px; font-weight: 700; font-size: 14px; }
+  #atlas-go {
+    display: inline-flex; align-items: center; justify-content: space-between; gap: 13px; padding: 8px 15px;
+    color: #372e25; background: #f1ca84; border: 1px solid #ffe4ad; border-radius: 3px;
+    line-height: 1.35; font: inherit; font-weight: 800; text-align: left;
+  }
+  #atlas-go::after { content: "→"; font-size: 21px; }
+  #atlas-go:hover { background: #ffe0a5; }
+  .atlas-controls { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 5px 16px;
+    padding: 3px 20px; border-bottom: 1px solid #b8a88f; background: #efe5ce; }
+  .atlas-controls [role="group"] { display: flex; gap: 4px; flex-wrap: wrap; }
+  [data-epoch] { background: none; color: #5d503f; border: 0; border-bottom: 3px solid transparent; border-radius: 0; font: inherit; font-weight: 700; padding: 6px 13px; }
+  [data-epoch][aria-pressed="true"] { color: #923e32; border-color: #a95140; }
+  [data-epoch]::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 7px;
+    border: 1px solid currentColor; transform: rotate(45deg); vertical-align: middle; }
+  [data-epoch][aria-pressed="true"]::before { background: currentColor; }
+  .atlas-map button { min-height: 44px; }
+  #open-life-btn { color: #445c55; background: transparent; border: 0; text-decoration: underline; text-underline-offset: 4px; }
+  .atlas-course { animation: atlas-trace 1s ease-out 1 both; }
+  .atlas-hand { animation: atlas-set .8s ease-out 1 both; }
+  .atlas-ship { animation: atlas-sail .8s ease-out 1 both; }
+  @keyframes atlas-trace { from { stroke-dashoffset: 45; opacity: .2; } to { stroke-dashoffset: 0; opacity: 1; } }
+  @keyframes atlas-set { from { transform: rotate(-42deg); } to { transform: rotate(0); } }
+  @keyframes atlas-sail { from { transform: translate(-18px,5px); } to { transform: translate(0,0); } }
+  #map-root .grade-tabs { gap: 4px; border-color: #b6a481; }
+  #map-root .grade-tabs button { background: #f0eadc; color: #514f47; border-radius: 5px 5px 0 0; }
+  #map-root .grade-tabs [aria-selected="true"] { background: #3c625b; color: #fff6dc; border-color: #e2b76e; }
+  #map-root .grade-overview h2, #map-root .line-title h3, #node-title, .section-head h2 { font-family: "Klee One","Yu Mincho","Hiragino Mincho ProN",serif; }
+  #map-root .line-dot { background: var(--line-color); width: 12px; height: 12px; border: 2px solid #faf6ea;
+    box-shadow: 0 0 0 1px var(--line-color); border-radius: 2px; transform: rotate(45deg); }
+  #map-root .station-button.playable { background: #fffdf4; border-color: #b6aa8f; border-top-color: var(--line-color); }
+  #map-root .station-top, #map-root .station-name, #map-root .station-sub, #map-root .stamp-row { position: relative; }
+  #map-root .station-button.playable .station-bg { opacity: .54; }
+  #map-root .mini-stamp.clear { color: #963d33; border: 2px double #ae5142; background: #fff2df; }
+  .arrival-ticket { position: relative; isolation: isolate; overflow: hidden; min-height: 95px; padding: 14px 24px;
+    display: flex; gap: 18px; align-items: center; border-block: 3px double #bda67c;
+    background: repeating-linear-gradient(135deg,#fff6e5 0 8px,#f7edda 8px 9px); color: #493d32; }
+  .arrival-ticket small,.arrival-ticket strong { display: block; }
+  .arrival-ticket strong { margin-top: 2px; font: 700 21px/1.4 "Yu Mincho","Hiragino Mincho ProN",serif; }
+  .arrival-stamp { flex: none; padding: 6px; border: 4px double currentColor; border-radius: 3px; color: #a3493c;
+    font: 700 23px/1.3 "Yu Mincho",serif; transform: rotate(-7deg); animation: atlas-imprint .48s ease-out both; }
+  @keyframes atlas-imprint { from { opacity: .15; transform: rotate(-12deg) scale(1.17); } }
+  .arrival-art { position: absolute; z-index: -1; inset: 0 4% 0 auto; width: min(36%,240px); opacity: .56; }
+  .arrival-art .station-bg { width: 100%; height: 100%; opacity: 1; }
+  .time-crossing::after { content: ""; position: absolute; z-index: -1; inset: 0; pointer-events: none;
+    background: linear-gradient(105deg,transparent 32%,#a9c8b652 38%,#e4b97152 43%,transparent 53%);
+    animation: atlas-cross .7s ease-out 1 both; opacity: 0; }
+  @keyframes atlas-cross { from { opacity: 1; transform: translateX(-65%); } to { opacity: 0; transform: translateX(72%); } }
+  .archive-ticket { background: #efeee8; border-color: #aba99d; }
+  .archive-ticket .arrival-stamp { animation: none; transform: none; color: #595f5c; }
+  .section-head h2 { color: #463b35; }
+  .atlas-map button:focus-visible { outline: 3px solid #d1723f; outline-offset: -3px; }
+  .atlas-caption button:focus-visible { outline-color: #1d4f64; }
+}
+@media screen and (max-width: 740px) {
+  .atlas-caption { padding-left: 18px; width: 41%; }
+  #map-title { font-size: 34px; }
+  .atlas-sky { min-height: 205px; }
+  #atlas-picture { inset-inline-start: 26%; }
+  .atlas-folio { margin-bottom: 5px; }
+}
+@media screen and (max-width: 540px) {
+  .app-header { display: flex; flex-direction: row; align-items: center; gap: 6px; padding: 10px 12px; }
+  .brand { gap: 6px; }
+  .brand h1 { font-size: 19px; }
+  .app-header .eyebrow { font-size: 10px; }
+  .brand-mark { width: 33px; height: 33px; }
+  .player-card { width: auto; min-width: 0; max-width: 34%; padding: 0 0 0 7px; text-align: right; }
+  .player-card > span,.player-card small { font-size: 10px; }
+  .player-card strong { font-size: 16px; }
+  .atlas-map { margin-inline: -12px; margin-bottom: 12px; }
+  .atlas-sky { display: block; padding-top: 144px; min-height: 0; }
+  #atlas-picture { inset: 0 0 auto; height: 153px; }
+  .atlas-caption { padding: 8px 15px 12px; width: 100%; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 3px 10px; align-items: center; }
+  .atlas-folio { grid-column: 1 / -1; margin: 0; font-size: 10px; }
+  #map-title { font-size: 26px; }
+  #atlas-target { margin: 0; font-size: 12px; grid-column: 1 / -1; grid-row: 3; }
+  #atlas-go { grid-column: 2; grid-row: 2; font-size: 12px; padding: 5px 9px; gap: 5px; max-width: 160px; }
+  .atlas-controls { padding: 2px 8px; gap: 2px; }
+  [data-epoch],#open-life-btn { padding: 5px; font-size: 13px; }
+  .arrival-ticket { padding: 12px; gap: 12px; }
+}
+@media print { .atlas-map, .arrival-ticket { display: none !important; } }
+
+.stamp-book { margin: 0 0 22px; }
+.stamp-book-head,.stamp-turn { display: flex; gap: 12px; align-items: center; }
+.stamp-book-head { justify-content: space-between; margin-bottom: 8px; color: #564432; }
+.stamp-book-head h3 { margin: 0; font: 700 20px "Yu Mincho",serif; }
+.stamp-book-head label { font-size: 13px; }
+.stamp-book-head select { font: inherit; padding-inline: 7px; border: 1px solid #b7a788; color: #433e35; background: #fffaf0; }
+.stamp-spread { display: grid; grid-template-columns: repeat(2,minmax(0,1fr));
+  border: 5px solid #584456; border-radius: 3px; border-bottom-width: 7px;
+  box-shadow: inset 0 -3px #d2c6ac, 0 2px #bba887;
+  background: linear-gradient(90deg,#f2ead8,#fffbef 4%,#faf5e6 46%,#d6c9ad 49.8%,#aa9677 50%,#ebe0c7 50.6%,#fffbed 54%,#fbf5e5 98%,#e9dfc7); }
+.stamp-spread article { min-width: 0; padding: 14px 8px; display: grid; justify-items: center; align-content: start; gap: 6px; text-align: center; color: #4a3e32; }
+.stamp-spread article strong { font: 700 17px/1.4 "Yu Mincho",serif; }
+.stamp-spread article small { font-size: 12px; color: #6b5e4c; }
+.stamp-turn { justify-content: center; margin: 4px 0; color: #665944; font-size: 13px; }
+.stamp-turn button { font-size: 19px; width: 44px; background: transparent; border: none; color: #714839; }
+.stamp-turn button:disabled { opacity: .4; }
+.station-seal,.archive-record { width: 88px; height: 88px; display: inline-grid; place-content: center; justify-items: center; }
+.station-seal { color: #963f31; border: 4px double currentColor; border-radius: 49% 51% 47% 50%; transform: rotate(-6deg); }
+.station-seal.inked { background: #b4523809; }
+.journey-result-head .inked { flex: none; animation: atlas-imprint .48s ease-out both; }
+.battle-stage:has(.battle-landscape) { isolation: isolate; overflow: hidden; background: linear-gradient(145deg,#283745,#29484d 68%,#345651); }
+.battle-landscape { position: absolute; inset: 6% 0 0 45%; z-index: -1; pointer-events: none; opacity: .6; }
+.battle-landscape .station-bg { height: 100%; width: 100%; opacity: .8; }
+.station-seal .station-bg { position: static; height: 32px; width: 60px; opacity: 1; }
+.station-seal .station-bg g { color: inherit !important; opacity: 1; stroke-width: 4; }
+.station-seal b { font: bold 14px/1.4 "Yu Mincho",serif; border-block: 1px solid; }
+.station-seal.empty-seal { border: 1px dashed #a79b83; color: #776b56; transform: none; font: 14px "Yu Mincho",serif; }
+.archive-record { border: 1px solid #a2a396; border-radius: 0; color: #595f5a; font: 14px serif; }
+@media screen and (min-width: 541px) and (max-width: 760px) {
+  .app-header { flex-direction: row; align-items: center; }
+  .player-card { width: auto; text-align: right; }
+}
+@media screen and (max-width: 760px) { .atlas-map { margin-inline: -16px; } }
+@media screen and (max-width: 370px) { .tab { font-size: 13px; } }

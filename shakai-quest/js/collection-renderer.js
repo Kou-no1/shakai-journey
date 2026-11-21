@@ -209,6 +209,7 @@
   function render(root) {
     var save = window.SaveManager.data();
     root.innerHTML = [
+      '<section class="stamp-book" aria-label="旅の御朱印"></section>',
       '<div class="collection-summary">',
       '<div class="summary-tile"><span>たびのかけら</span><strong>', save.owned.kakeraCount, '</strong></div>',
       '<div class="summary-tile"><span>名産品</span><strong>', save.owned.meibutsu.length, '</strong></div>',
@@ -226,6 +227,7 @@
       renderCategory("実用アイテム", "item", save),
       '</div>'
     ].join("");
+    window.TravelAtlas.renderBook(root.querySelector(".stamp-book"));
     var picker = root.querySelector("[data-goal-picker]");
     if (picker) {
       picker.disabled = window.SaveManager.status().protected;

@@ -39,6 +39,8 @@
 
 ## 遊び方と保存
 
+地図の「時空航路図」では現代・縄文〜古墳・戦国を切り替え、時渡りの帆船で駅へ出発できます。まだ開いていない駅を選ぶと、同じ路線で今進める駅へ案内します。認定後には駅の絵入り朱印が残り、資料館の「旅の御朱印」で学年別に見開きをめくれます。戦争単元は朱印ではなく聞き取り記録として扱います。
+
 地図の「くらしの探究」から、小学3〜6年で各2場面、計8場面に挑戦できます。通学路の地図や給食のにんじんなど、学習用の架空の資料から自分の案を選び、ほかの案と比べられます。初回答だけを記録し、駅の合否や経験値とは分けています。
 
 小学校の関連駅と中学の全12コースに、同じ題材を一段深く読む二択の橋渡し課題を設けています。資料館では探したい名産品を一つ選び、地図から今進める駅へ向かえます。結果画面では、短いコースをもう一度進めるか、次の駅・難度に進めるかが分かります。
@@ -77,6 +79,7 @@ node shakai-quest/tests/middle-extension.cjs
 node shakai-quest/tests/browser.cjs
 node shakai-quest/tests/middle-browser.cjs
 node shakai-quest/tests/journey-browser.cjs
+node shakai-quest/tests/atlas-browser.cjs
 ```
 
 ブラウザテストだけはテスト環境にPlaywrightとChrome/Chromiumが必要です。ゲーム本体には依存しません。既存のPlaywrightの配置先を `NODE_PATH`、Chromiumの実行ファイルを `PLAYWRIGHT_CHROMIUM_EXECUTABLE` で指定できます。スクリーンショットと印刷PDFはOSの一時ディレクトリ `social-quest-qa` に出力します。

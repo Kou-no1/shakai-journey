@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="journey-results.css">
   <link rel="stylesheet" href="middle-bridges.css">
   <link rel="stylesheet" href="life-cases.css">
+  <link rel="stylesheet" href="travel-atlas.css">
 </head>
 <body>
   <svg class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
@@ -30,14 +31,14 @@
     <header class="app-header">
       <div class="brand">
         <div class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 64 64" role="img">
-            <path d="M14 8h31c5 0 9 4 9 9v39H20c-6 0-10-4-10-10V12c0-2 2-4 4-4Z" fill="currentColor" opacity=".18"/>
-            <path d="M18 10h30c4 0 7 3 7 7v38H20c-5 0-9-4-9-9V17c0-4 3-7 7-7Z" fill="none" stroke="currentColor" stroke-width="4"/>
-            <path d="M23 20h20M23 30h17M23 40h22" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+          <svg viewBox="0 0 64 64">
+            <rect x="4" y="4" width="56" height="56" rx="4" fill="#ad483b" stroke="#edbc79" stroke-width="2"/>
+            <rect x="8" y="8" width="48" height="48" rx="1" fill="none" stroke="#f4cc86"/>
+            <path d="M19 18h10v25H19zM19 30h10m4-7h13m-6-7v13m-9 1h19m-5 3v15l-6-2m-4-10 3 4" fill="none" stroke="#fff2d5" stroke-width="3"/>
           </svg>
         </div>
         <div>
-            <p class="eyebrow">小学3〜6年・中学発展 / 社会の冒険</p>
+          <p class="eyebrow">小学三〜六年・中学発展</p>
           <h1>時空社会御朱印帳</h1>
         </div>
       </div>
@@ -65,12 +66,24 @@
           <span class="mote"></span>
           <span class="mote"></span>
         </div>
-        <div class="section-head">
-          <div>
-            <p class="eyebrow">学年別の冒険</p>
-            <h2 id="map-title">旅の地図</h2>
+        <div class="atlas-map">
+          <div class="atlas-sky">
+            <div id="atlas-picture" aria-hidden="true"></div>
+            <div class="atlas-caption">
+              <p class="atlas-folio" lang="en">CHRONO ATLAS <b id="atlas-number">01 / 03</b></p>
+              <h2 id="map-title">時空航路図</h2>
+              <div id="atlas-target" aria-live="polite"></div>
+              <button id="atlas-go" type="button"></button>
+            </div>
           </div>
-          <button id="open-life-btn" class="ghost-button" type="button">くらしの探究</button>
+          <div class="atlas-controls">
+            <div role="group" aria-label="航路の時代">
+              <button type="button" data-epoch="now" aria-pressed="true">現代</button>
+              <button type="button" data-epoch="early" aria-pressed="false">縄文〜古墳</button>
+              <button type="button" data-epoch="castle" aria-pressed="false">戦国</button>
+            </div>
+            <button id="open-life-btn" class="ghost-button" type="button">くらしの探究</button>
+          </div>
         </div>
         <div id="map-goal" hidden></div>
         <div id="map-root"></div>
@@ -213,6 +226,7 @@
   <script src="js/collection-renderer.js"></script>
   <script src="js/achievement-manager.js"></script>
   <script src="js/report-renderer.js"></script>
+  <script src="js/travel-atlas.js"></script>
   <script src="js/map-renderer.js"></script>
   <script src="js/quiz-engine.js"></script>
   <script src="js/written-engine.js"></script>

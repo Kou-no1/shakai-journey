@@ -222,7 +222,8 @@
     var node = window.NODES_DATA[state.nodeId], somber = node.challengeStyle === "kikitori", monster = window.MONSTER_DATA[state.monsterId];
     var items = window.SaveManager.data().owned.consumables, hints = state.hintLeft + items.hint;
     root.innerHTML = '<section class="rpg-quiz ' + (somber ? 'somber' : '') + '"><div class="quiz-progress"><strong>' + esc(label()) + '</strong><span>' + (q.isRetry ? '学び直し' : (state.index + 1) + ' / ' + state.initialCount) + '</span></div>' +
-      '<div class="battle-stage" data-battle-stage><span class="battle-mode">' + (state.mode === "learn" ? "学び直し" : "RPG挑戦") + '</span><div data-enemy-art>' + window.SocialRPG.art(state.monsterId) + '</div><strong>' + esc(monster ? monster.name : "聞き取り資料") + '</strong>' +
+      '<div class="battle-stage" data-battle-stage>' + (somber || state.options.middleCourse ? '' : '<div class="battle-landscape" aria-hidden="true">' + window.ShakaiIcons.stationBackground(state.nodeId) + '</div>') +
+      '<span class="battle-mode">' + (state.mode === "learn" ? "学び直し" : "RPG挑戦") + '</span><div data-enemy-art>' + window.SocialRPG.art(state.monsterId) + '</div><strong>' + esc(monster ? monster.name : "聞き取り資料") + '</strong>' +
       (somber ? '' : '<div class="enemy-hp"><span>HP ' + state.enemyHp + ' / ' + state.enemyMax + '</span><progress value="' + state.enemyHp + '" max="' + state.enemyMax + '" aria-label="挑戦相手のHP"></progress></div>') +
       (state.mode === "challenge" ? '<div class="life-count">ライフ ' + state.lives + ' / ' + state.maxLives + '</div>' : '') + '</div>' +
       '<div class="question-card"><p class="eyebrow">' + esc(node.stationName) + ' / ' + esc(window.SocialQuestions.skills[q.skill]) + '</p><h2 id="quiz-title" class="question-text">' + ruby(q.stem) + '</h2>' +
@@ -324,9 +325,12 @@
     var rewards = r.rewards.slice();
     if (!quiet && !o.review) rewards.unshift("たびのかけら × " + attempted);
     var stamp = quiet ? "資料" : course ? "発展" : { basic: "探究", advanced: "認定", extra: "先取" }[state.tier];
+    var certified = r.completed && state.tier === "advanced" && !o.review && !course && !quiet && window.TravelAtlas;
+    if (certified) goal = { kind: "collection", note: "この駅の御朱印が、旅の見開きに残りました。", button: "御朱印帳を開く",
+      go: function () { window.TravelAtlas.bookTo(nodeId); window.ShakaiApp.showTab("collection"); } };
     root.innerHTML = '<section class="result-panel journey-result' + (quiet ? ' somber' : '') + '"><header class="journey-result-head"><div><p class="eyebrow">' + record + '</p><h2 id="quiz-title" tabindex="-1">' + title + '</h2><p>' +
       esc(course ? course.title : node.stationName) + (branch ? ' / ' + esc(branch.label) : '') + ' / ' + esc(course ? (o.middlePractice ? window.MiddleCourses.mistakeLabels[o.middlePractice] : window.MiddleCourses.difficulties[o.middleDifficulty || "standard"]) : label()) + '</p></div>' +
-      (r.completed ? window.ShakaiIcons.resultStamp(stamp, quiet) : '') + '</header><dl class="journey-metrics">' + metrics + '</dl>' +
+      (certified ? window.TravelAtlas.seal(nodeId,true) : r.completed ? window.ShakaiIcons.resultStamp(stamp, quiet) : '') + '</header><dl class="journey-metrics">' + metrics + '</dl>' +
       (attempted < total ? '<p>全' + total + '問のうち、' + attempted + '問に取り組みました。</p>' : '') +
       (o.review ? '<p>復習の記録を残しました。</p>' : course && r.perfect ? '<p>初回全問正解・ヒントなし</p>' : '') + guideHTML +
       (rewards.length ? '<h3>' + (quiet ? '記録に加わったもの' : '今回手に入れたもの') + '</h3><ul class="result-list">' + rewards.map(function (text) { return '<li>' + esc(text) + '</li>'; }).join("") + '</ul>' : '') +
